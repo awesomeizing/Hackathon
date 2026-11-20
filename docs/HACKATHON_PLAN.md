@@ -50,7 +50,7 @@ Node.js 24, **zero npm dependencies**: `node:https` (TLS), `node:crypto` (SHA-25
 demo CA. Reason: nothing to install, nothing to break on venue Wi-Fi.
 
 ## 4. Team owners
-Names are not yet provided (see A5). Claude implements; each owner reviews and presents their part.
+Names are not yet provided (see A5). Team implements; each owner reviews and presents their part.
 
 | Role | Owner | Owns |
 |---|---|---|
