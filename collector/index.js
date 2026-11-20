@@ -324,6 +324,7 @@ http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://127.0.0.1');
   try {
     if (req.method === 'GET' && u.pathname === '/') return send(200, fs.readFileSync(path.join(__dirname, 'ui.html')), 'text/html; charset=utf-8');
+    if (req.method === 'GET' && u.pathname === '/demo') return send(200, fs.readFileSync(path.join(__dirname, 'demo.html')), 'text/html; charset=utf-8');
     if (req.method === 'GET' && u.pathname === '/api/state') return send(200, state(u.searchParams.get('raw')));
     if (req.method === 'GET' && u.pathname === '/api/delivery') return send(200, delivery());
     if (req.method === 'GET' && u.pathname.startsWith('/api/payload/')) {

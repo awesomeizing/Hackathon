@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signal Passport · Privacy Crossing</title>
+<style>
+  :root { --bg:#0B1220; --bg2:#0F1829; --panel:#121C2E; --line:#22314A; --text:#E7EDF5; --muted:#9AA8BB; --teal:#2DD4BF; --cyan:#38BDF8;
+    --raw:#7C8AA5; --secret:#FB7185; --amber:#F5B43C; --ok:#34D399; --focus:#7DD3FC; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; background:var(--bg); color:var(--text); }
+  body { font:15px/1.5 ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:var(--cyan); }
+  :focus-visible { outline:2px solid var(--focus); outline-offset:3px; border-radius:6px; }
+  .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .skip { position:absolute; left:16px; top:-48px; background:var(--panel); padding:8px 12px; border-radius:8px; z-index:5; }
+  .skip:focus { top:12px; }
+  .wrap { max-width:1280px; margin:0 auto; padding:0 clamp(16px, 3vw, 40px); }
+
+  header.top { display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px; padding:18px 0 10px; }
+  .brand { font-weight:650; letter-spacing:-.02em; font-size:17px; }
+  .brand small { color:var(--muted); font-weight:500; margin-left:6px; }
+  .grow { flex:1 1 auto; }
+  .badge { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; letter-spacing:.04em; padding:4px 10px; border-radius:999px; border:1px solid currentColor; white-space:nowrap; }
+  .badge.sim { color:var(--amber); } .badge.org { color:var(--ok); } .badge.up { color:var(--ok); } .badge.down { color:var(--secret); } .badge.wait { color:var(--muted); }
+  nav.links { display:flex; gap:14px; font-size:14px; }
+  nav.links a { text-decoration:none; color:var(--text); opacity:.85; border-bottom:1px solid var(--line); }
+  nav.links a:hover { opacity:1; border-color:var(--cyan); }
+
+  .hero { position:relative; margin-top:6px; border-radius:18px; overflow:hidden; background:radial-gradient(120% 120% at 30% 20%, #13213A 0%, var(--bg2) 55%, var(--bg) 100%); border:1px solid var(--line); }
+  .stage { position:relative; height:clamp(320px, 52vh, 520px); }
+  canvas { position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:pan-y; }
+  .zone { position:absolute; top:14px; font-size:11.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); pointer-events:none; }
+  .zone.l { left:18px; } .zone.r { right:18px; text-align:right; }
+  .zone b { display:block; font-size:13px; letter-spacing:.06em; color:var(--text); text-transform:none; font-weight:600; }
+  .boundaryLabel { position:absolute; top:14px; transform:translateX(-50%); font-size:11px; font-weight:700; letter-spacing:.16em; color:var(--teal); pointer-events:none; white-space:nowrap; }
+  .legend { position:absolute; left:18px; bottom:14px; display:flex; flex-wrap:wrap; gap:6px 16px; font-size:12px; color:var(--muted); pointer-events:none; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  .fallback { display:none; position:absolute; inset:0; padding:56px 24px 24px; color:var(--muted); }
+  .fallback .row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-size:14px; margin-bottom:14px; }
+  .fallback .pill { padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--text); }
+  .hero.nocanvas canvas { display:none; } .hero.nocanvas .fallback { display:block; }
+  .copy { padding:22px 24px 24px; border-top:1px solid var(--line); display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:20px 36px; align-items:end; }
+  h1 { margin:0; font-size:clamp(28px, 4.2vw, 52px); line-height:1.02; letter-spacing:-.035em; font-weight:650; }
+  h1 em { font-style:normal; color:var(--teal); }
+  .lede { margin:0; color:var(--muted); font-size:15.5px; }
+
+  .stats { display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:12px; margin:18px 0; }
+  .stat { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px; }
+  .stat .n { font-size:26px; font-weight:650; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  .stat .l { font-size:12.5px; color:var(--muted); }
+
+  .grid2 { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:18px; margin-bottom:28px; }
+  section.panel { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px 20px; }
+  h2 { margin:0 0 4px; font-size:15px; letter-spacing:.02em; }
+  .sub { margin:0 0 14px; color:var(--muted); font-size:13px; }
+  ol.journey { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+  ol.journey li { display:grid; grid-template-columns:30px minmax(0,1fr); gap:12px; padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--bg2); }
+  .num { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:13px; border:1px solid var(--line); color:var(--muted); }
+  li.done .num { background:var(--teal); border-color:var(--teal); color:#062A26; }
+  li.warn .num { background:var(--amber); border-color:var(--amber); color:#2A1B02; }
+  .jt { font-weight:600; } .jt time { font-weight:500; color:var(--muted); font-size:12.5px; margin-left:8px; font-variant-numeric:tabular-nums; }
+  .jd { color:var(--muted); font-size:13.5px; overflow-wrap:anywhere; }
+  .mono { font-family:ui-monospace, "Cascadia Code", Consolas, monospace; font-size:12.5px; }
+  .raw { color:var(--text); background:#0A111D; border:1px solid var(--line); border-radius:8px; padding:6px 8px; margin-top:6px; }
+  mark { background:transparent; color:var(--secret); font-weight:700; text-decoration:underline wavy; }
+  .tag { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.08em; padding:1px 7px; border-radius:6px; margin-right:6px; vertical-align:1px; }
+  .tag.local { color:var(--secret); border:1px solid var(--secret); } .tag.ok { color:var(--ok); border:1px solid var(--ok); } .tag.warn { color:var(--amber); border:1px solid var(--amber); }
+
+  .simhead { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .btns { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; margin:12px 0; }
+  button.inj { appearance:none; text-align:left; background:var(--bg2); color:var(--text); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font:inherit; cursor:pointer; }
+  button.inj:hover:not(:disabled) { border-color:var(--cyan); }
+  button.inj:disabled { opacity:.5; cursor:not-allowed; }
+  button.inj b { display:block; font-size:14px; } button.inj span { font-size:12px; color:var(--muted); }
+  .out { min-height:54px; background:#0A111D; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:13px; color:var(--muted); overflow-wrap:anywhere; }
+  .note { font-size:12.5px; color:var(--muted); margin:12px 0 0; }
+  footer { color:var(--muted); font-size:12.5px; padding:0 0 28px; }
+
+  @media (max-width: 900px) {
+    .copy, .grid2 { grid-template-columns:1fr; }
+    .stats { grid-template-columns:repeat(2, minmax(0,1fr)); }
+  }
+  @media (max-width: 700px) {
+    .boundaryLabel { top:56px; }   /* clear of the two zone titles on narrow screens */
+  }
+  @media (max-width: 520px) {
+    .zone b { font-size:12px; } .legend { font-size:11px; }
+    .btns { grid-template-columns:1fr; }
+    .stat .n { font-size:22px; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#journey">Skip to the live journey</a>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Signal Passport <small>Privacy Crossing · jury demo</small></div>
+    <span id="streamBadge" class="badge wait">STREAM: waiting for data</span>
+    <span id="saasBadge" class="badge wait">SaaS: waiting for data</span>
+    <span class="grow"></span>
+    <nav class="links" aria-label="Consoles">
+      <a href="/">Collector console</a>
+      <a href="http://127.0.0.1:8080/" target="_blank" rel="noopener">SaaS dashboard ↗</a>
+    </nav>
+  </header>
+
+  <div class="hero" id="hero">
+    <div class="stage">
+      <canvas id="cv" aria-hidden="true"></canvas>
+      <div class="zone l">Collector · stays local<b>raw events</b></div>
+      <div class="zone r">SaaS · ap-south<b>allow-listed metadata</b></div>
+      <div class="boundaryLabel" id="bLabel">PRIVACY BOUNDARY</div>
+      <div class="legend" aria-hidden="true">
+        <span><i class="dot" style="background:var(--raw)"></i>raw event (local)</span>
+        <span><i class="dot" style="background:var(--secret)"></i>secret detected (local)</span>
+        <span><i class="dot" style="background:var(--teal)"></i>sanitized payload</span>
+        <span><i class="dot" style="background:var(--amber)"></i>buffered (SaaS unreachable)</span>
+      </div>
+      <div class="fallback" role="img" aria-label="Static diagram: raw events stay on the collector; only allow-listed metadata crosses the privacy boundary to SaaS.">
+        <div class="row"><span class="pill">raw events · secrets · usernames · IPs</span><span>stay on the collector</span></div>
+        <div class="row"><span class="pill">policy gate sp-policy-1</span><span>→</span><span class="pill">canonical JSON + SHA-256 passport</span><span>→</span><span class="pill">SaaS receipt (digest match)</span></div>
+      </div>
+    </div>
+    <p class="sr">Animation: grey dots are raw telemetry events arriving at the collector. They stop at the privacy boundary. Teal markers are sanitized payloads that cross to SaaS; amber markers are payloads buffered while SaaS is unreachable. Dot and marker counts follow the collector's real event and payload counts.</p>
+    <div class="copy">
+      <h1>Your signals cross.<br><em>Your secrets stay local.</em></h1>
+      <p class="lede">Every event is processed on the collector. Only typed, allow-listed metadata crosses the boundary, and each payload carries a Signal Passport: a SHA-256 of the exact bytes that SaaS must match in its receipt.</p>
+    </div>
+  </div>
+
+  <div class="stats" role="group" aria-label="Live collector counters">
+    <div class="stat"><div class="n" id="sEvents">—</div><div class="l">events observed locally (since collector start)</div></div>
+    <div class="stat"><div class="n" id="sSecrets">—</div><div class="l">secret spans detected, kept local</div></div>
+    <div class="stat"><div class="n" id="sAcked">—</div><div class="l">payloads acknowledged by SaaS</div></div>
+    <div class="stat"><div class="n" id="sBuffered">—</div><div class="l">buffered locally right now</div></div>
+    <div class="stat"><div class="n" id="sMatch">—</div><div class="l">receipt digests matched (recent payloads)</div></div>
+  </div>
+
+  <div class="grid2">
+    <section class="panel" id="journey" aria-labelledby="jh">
+      <h2 id="jh">Live journey of one real event</h2>
+      <p class="sub" id="jsub">Follows the newest event that has been batched into a payload, preferring one where a secret was detected.</p>
+      <ol class="journey" aria-live="polite">
+        <li id="j1"><div class="num">1</div><div><div class="jt">Event observed locally</div><div class="jd">waiting for data</div></div></li>
+        <li id="j2"><div class="num">2</div><div><div class="jt">Summarized and filtered</div><div class="jd">waiting for data</div></div></li>
+        <li id="j3"><div class="num">3</div><div><div class="jt">Allow-listed metadata + Signal Passport</div><div class="jd">waiting for data</div></div></li>
+        <li id="j4"><div class="num">4</div><div><div class="jt">SaaS receipt</div><div class="jd">waiting for data</div></div></li>
+        <li id="j5"><div class="num">5</div><div><div class="jt">Related alert and recommendation</div><div class="jd">Alerts and recommendations are computed on the SaaS and shown on the <a href="http://127.0.0.1:8080/" target="_blank" rel="noopener">SaaS dashboard ↗</a> (tenant login). This page does not read or display them.</div></div></li>
+      </ol>
+    </section>
+
+    <section class="panel" aria-labelledby="simh">
+      <div class="simhead"><h2 id="simh">Inject a scenario</h2><span class="badge sim">SIMULATED</span></div>
+      <p class="sub">Sends the event to the fallback simulator, not the organizer stream. The result below is the simulator's actual response.</p>
+      <div class="btns" id="btns">
+        <button class="inj" data-s="secret"><b>Secret in a log</b><span>password + key in one DB error line</span></button>
+        <button class="inj" data-s="cpu"><b>CPU deviation</b><span>db-01 CPU ~96% for 40 s</span></button>
+        <button class="inj" data-s="latency"><b>Latency rises</b><span>edge-gw-01 latency + loss, 40 s</span></button>
+        <button class="inj" data-s="incident"><b>Multi-signal incident</b><span>web-01 CPU, latency, loss, down</span></button>
+        <button class="inj" data-s="bruteforce"><b>Failed-login burst</b><span>web-01, 20 s, counts only leave</span></button>
+        <button class="inj" data-s="stale"><b>Source goes silent</b><span>db-01 silent 45 s (stale data)</span></button>
+      </div>
+      <div class="out" id="out" role="status" aria-live="polite">No scenario sent from this page yet.</div>
+      <p class="note">Wait about 70 s between scenarios on the same host so their alerts form separate incidents.</p>
+    </section>
+  </div>
+
+  <footer>
+    Data on this page comes from this collector's local APIs (<span class="mono">/api/state</span>, <span class="mono">/api/delivery</span>), polled every few seconds while the tab is visible. Raw event text is shown only on this loopback page. The stream label is reported by the collector itself.
+  </footer>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  const hhmmss = iso => iso ? new Date(iso).toISOString().slice(11, 19) + 'Z' : '';
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  /* ── state ─────────────────────────────────────────────────────────── */
+  let S = null, busy = false;
+  let lastEvents = null, lastEventsT = 0, eventRate = 0, lastSecrets = null, lastSeq = null;
+  let journeyRow = null, journeyPayload = null, secretRow = null;
+  const markers = new Map();   // seq -> marker, one per real payload
+
+  // canvas state (declared up front: polling may finish before the canvas is set up)
+  const hero = $('hero'), cv = $('cv');
+  const ctx = cv.getContext ? cv.getContext('2d') : null;
+  if (!ctx) hero.classList.add('nocanvas');
+  let W = 0, H = 0, BX = 0, GATE = { x: 0, y: 0 };
+  const parts = [];
+  const mouse = { x: -1e4, y: -1e4, on: false };
+  let anim = false, raf = 0, last = 0, spawnAcc = 0;
+
+  async function getJSON(url) {
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }
+
+  /* ── header, counters ──────────────────────────────────────────────── */
+  function setBadges() {
+    const sb = $('streamBadge'), ab = $('saasBadge');
+    const org = !!S && S.stream.kind === 'organizer';
+    for (const b of document.querySelectorAll('button.inj')) b.disabled = busy || !S || org;
+    if (!S) { sb.className = 'badge down'; sb.textContent = 'COLLECTOR: unreachable'; ab.className = 'badge wait'; ab.textContent = 'SaaS: unknown'; return; }
+    sb.className = 'badge ' + (org ? 'org' : 'sim');
+    sb.textContent = (org ? 'ORGANIZER STREAM' : 'SIMULATED STREAM — not organizer evidence') + (S.stream.connected ? '' : ' · disconnected');
+    ab.className = 'badge ' + (S.saas.reachable ? 'up' : S.saas.reachable === false ? 'down' : 'wait');
+    ab.textContent = S.saas.reachable ? 'SaaS reachable · buffered ' + S.buffered
+      : S.saas.reachable === false ? 'SaaS unreachable — buffering ' + S.buffered : 'SaaS: waiting for data';
+  }
+
+  function setStats() {
+    const fmt = n => (n == null ? '—' : Number(n).toLocaleString());
+    if (!S) { for (const id of ['sEvents', 'sSecrets', 'sAcked', 'sBuffered', 'sMatch']) $(id).textContent = '—'; return; }
+    $('sEvents').textContent = fmt(S.stream.events);
+    $('sSecrets').textContent = fmt(S.counts.secrets_seen);
+    $('sAcked').textContent = fmt(S.counts.acked);
+    $('sBuffered').textContent = fmt(S.buffered);
+    const withReceipt = S.payloads.filter(p => p.receipt);
+    $('sMatch').textContent = withReceipt.length ? withReceipt.filter(p => p.match === 1).length + ' / ' + withReceipt.length : 'waiting';
+  }
+
+  /* ── live journey (real data only) ─────────────────────────────────── */
+  function markSecrets(line, hits) {
+    let out = '', pos = 0;
+    for (const [s, e] of hits) { if (s < pos) continue; out += esc(line.slice(pos, s)) + '<mark>' + esc(line.slice(s, e)) + '</mark>'; pos = e; }
+    return out + esc(line.slice(pos));
+  }
+
+  function step(id, cls, title, time, html) {
+    const li = $(id);
+    li.className = cls || '';
+    li.querySelector('.jt').innerHTML = esc(title) + (time ? ' <time>' + esc(time) + '</time>' : '');
+    li.querySelector('.jd').innerHTML = html;
+  }
+
+  function renderJourney() {
+    const row = journeyRow;
+    if (!row) {
+      for (const [id, t] of [['j1', 'Event observed locally'], ['j2', 'Summarized and filtered'], ['j3', 'Allow-listed metadata + Signal Passport'], ['j4', 'SaaS receipt']]) step(id, '', t, '', 'waiting for data');
+      return;
+    }
+    const line = row.line.length > 220 ? row.line.slice(0, 220) + '…' : row.line;
+    step('j1', 'done', 'Event observed locally', hhmmss(row.ts),
+      '<span class="tag local">LOCAL ONLY</span>' + esc(row.kind) + ' from <span class="mono">' + esc(row.host) + '</span>' +
+      (row.hits.length ? ' · <b style="color:var(--secret)">' + row.hits.length + ' secret span(s) detected</b>' : ' · no secrets detected') +
+      '<div class="raw mono">' + markSecrets(line, row.hits.filter(h => h[1] <= 220)) + '</div>');
+    const p = journeyPayload && journeyPayload.payload_id === row.payload_id ? journeyPayload : null;
+    if (!p) {
+      step('j2', '', 'Summarized and filtered', '', 'waiting for data (loading payload ' + esc(row.payload_id.slice(0, 8)) + '…)');
+      step('j3', '', 'Allow-listed metadata + Signal Passport', '', 'waiting for data');
+      step('j4', '', 'SaaS receipt', '', 'waiting for data');
+      return;
+    }
+    let body = null;
+    try { body = JSON.parse(p.body); } catch { /* reported as unavailable below */ }
+    const src = ((S && S.pseudonyms.find(x => x.host === row.host)) || {}).source_id;
+    const mine = body ? body.records.filter(r => r.source_id === src) : [];
+    const kinds = {};
+    for (const r of mine) kinds[r.kind] = (kinds[r.kind] || 0) + 1;
+    const redactions = mine.filter(r => r.kind === 'log_summary').reduce((a, r) => a + (r.redactions || 0), 0);
+    step('j2', 'done', 'Summarized and filtered', hhmmss(p.created_at),
+      body ? '<span class="mono">' + esc(row.host) + '</span> → <span class="mono">' + esc(src || 'unknown source') + '</span> · ' +
+        (Object.entries(kinds).map(([k, n]) => n + ' ' + esc(k)).join(', ') || 'no records for this source') +
+        ' in a ' + body.records.length + '-record batch' + (redactions ? ' · <b>redactions: ' + redactions + '</b> (counted, not copied)' : '') +
+        '. Message text, usernames and IP addresses are not in the payload.'
+        : 'payload body unavailable');
+    const pp = p.passport;
+    step('j3', 'done', 'Allow-listed metadata + Signal Passport', hhmmss(pp.created_at),
+      'payload <span class="mono">' + esc(pp.payload_id.slice(0, 8)) + '…</span> · ' + esc(pp.policy_version) + ' → ' + esc(pp.destination_region) +
+      ' · ' + pp.allowed_fields.length + ' allowed field names · ' + p.bytes + ' B<br>sha256 <span class="mono">' + esc(pp.sha256.slice(0, 24)) + '…</span>');
+    const rc = p.receipt;
+    if (rc && p.status === 'acked') {
+      const ok = p.match === 1 && rc.received_digest === pp.sha256;
+      step('j4', ok ? 'done' : 'warn', 'SaaS receipt', hhmmss(rc.received_at),
+        '<span class="tag ' + (ok ? 'ok">DIGEST MATCH' : 'warn">DIGEST MISMATCH') + '</span>status ' + esc(rc.status) +
+        ' · received <span class="mono">' + esc((rc.received_digest || '').slice(0, 24)) + '…</span>');
+    } else if (p.status === 'pending') {
+      step('j4', 'warn', 'SaaS receipt', '', '<span class="tag warn">BUFFERED</span>held locally until SaaS acknowledges it (attempts ' + esc(p.attempts) + ')');
+    } else {
+      step('j4', 'warn', 'SaaS receipt', '', 'status ' + esc(p.status) + ' · no matching receipt');
+    }
+  }
+
+  function loadJourneyPayload(id) {
+    getJSON('/api/payload/' + encodeURIComponent(id))
+      .then(p => { if (journeyRow && journeyRow.payload_id === id) { journeyPayload = p; renderJourney(); } })
+      .catch(() => {});
+  }
+
+  /* ── polling (only while visible) ──────────────────────────────────── */
+  let polling = false;
+  async function poll() {
+    if (polling || document.hidden) return;
+    polling = true;
+    try {
+      const st = await getJSON('/api/state?raw=all');
+      const now = performance.now();
+      if (lastEvents != null) eventRate = st.stream.events >= lastEvents ? (st.stream.events - lastEvents) / Math.max(0.5, (now - lastEventsT) / 1000) : 0;
+      lastEvents = st.stream.events; lastEventsT = now;
+      if (lastSecrets != null && st.counts.secrets_seen > lastSecrets) spawnSecrets(st.counts.secrets_seen - lastSecrets);
+      lastSecrets = st.counts.secrets_seen;
+      syncMarkers(st.payloads);
+      S = st;
+      const row = (secretRow && secretRow.payload_id ? secretRow : null) || st.raw.find(r => r.payload_id) || null;
+      const changed = !journeyRow || !row || row.payload_id !== journeyRow.payload_id;
+      journeyRow = row;
+      if (row && (changed || (journeyPayload && journeyPayload.status !== 'acked'))) { if (changed) journeyPayload = null; loadJourneyPayload(row.payload_id); }
+      renderJourney();
+    } catch {
+      S = null; eventRate = 0; journeyRow = null;
+      renderJourney();
+    } finally {
+      polling = false;
+      setBadges(); setStats();
+      if (!anim) drawStatic();
+    }
+  }
+
+  async function pollSecrets() {
+    if (document.hidden) return;
+    try { secretRow = (await getJSON('/api/state?raw=secrets')).raw.find(r => r.payload_id) || null; } catch { secretRow = null; }
+  }
+
+  async function pollDelivery() {
+    if (document.hidden) return;
+    try {
+      const d = await getJSON('/api/delivery');
+      $('jsub').textContent = 'Follows the newest event that has been batched into a payload, preferring one with a detected secret. Delivery totals: ' +
+        d.created.length + ' created · ' + d.acked.length + ' acked · ' + d.pending.length + ' pending · ' + d.rejected.length + ' rejected · ' + (d.dropped_total ?? 0) + ' dropped.';
+    } catch { /* keep the previous text */ }
+  }
+
+  /* ── simulator controls (SIMULATED) ────────────────────────────────── */
+  $('btns').addEventListener('click', async e => {
+    const b = e.target.closest('button.inj');
+    if (!b || b.disabled) return;
+    busy = true; setBadges();
+    const name = b.dataset.s;
+    $('out').textContent = 'Sending "' + name + '" to the simulator…';
+    try {
+      const r = await fetch('/api/inject/' + encodeURIComponent(name), { method: 'POST', headers: { 'x-sp-ui': '1' } });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        $('out').innerHTML = '<b style="color:var(--secret)">HTTP ' + r.status + '</b> ' + esc(j.error || 'request failed');
+      } else {
+        const bits = ['scenario <b>' + esc(j.scenario) + '</b>', 'label <b>' + esc(j.label) + '</b>', 'injected ' + esc(hhmmss(j.injected_at))];
+        if (j.host) bits.push('host <span class="mono">' + esc(j.host) + '</span>');
+        if (j.until) bits.push('until ' + esc(hhmmss(j.until)));
+        if (j.emitted != null) bits.push(esc(j.emitted) + ' line emitted');
+        $('out').innerHTML = 'Simulator response: ' + bits.join(' · ') + '. Watch the counters here and the SaaS dashboard for the effect.';
+      }
+    } catch (err) {
+      $('out').innerHTML = '<b style="color:var(--secret)">Collector unreachable:</b> ' + esc(err.message);
+    } finally {
+      busy = false; setBadges();
+      setTimeout(poll, 1500);
+    }
+  });
+
+  /* ── canvas: privacy crossing ──────────────────────────────────────── */
+  function resize() {
+    const r = cv.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = r.width; H = r.height;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    BX = Math.round(W * (W < 560 ? 0.6 : 0.58));
+    GATE = { x: BX - 26, y: H * 0.5 };
+    $('bLabel').style.left = BX + 'px';
+  }
+
+  function spawnRaw(secret) {
+    parts.push({ x: -6 - Math.random() * 30, y: H * (0.18 + Math.random() * 0.64), vx: 55 + Math.random() * 55, vy: (Math.random() - 0.5) * 12,
+      r: secret ? 3.4 : 1.6 + Math.random() * 1.2, secret, life: 1 });
+  }
+  function spawnSecrets(n) { if (ctx && W) for (let i = 0; i < Math.min(n, 12); i++) spawnRaw(true); }
+
+  function syncMarkers(payloads) {
+    const seen = new Set();
+    for (const p of payloads) {
+      seen.add(p.seq);
+      let m = markers.get(p.seq);
+      if (!m) {
+        if (lastSeq == null || p.seq <= lastSeq) continue;   // never replay history on first load
+        m = { seq: p.seq, x: GATE.x, y: GATE.y + (Math.random() - 0.5) * 30, t: 0, done: false };
+        markers.set(p.seq, m);
+      }
+      m.status = p.status; m.match = p.match;
+    }
+    const maxSeq = payloads.reduce((a, p) => Math.max(a, p.seq), -1);
+    if (lastSeq == null || maxSeq > lastSeq) lastSeq = maxSeq;
+    for (const [k, m] of markers) if (!seen.has(k) || m.done) markers.delete(k);
+  }
+
+  const rr = (x, y, w, h, r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); };
+
+  function drawScene(dt) {
+    ctx.clearRect(0, 0, W, H);
+    const g = ctx.createLinearGradient(BX, 0, W, 0);
+    g.addColorStop(0, 'rgba(45,212,191,0.07)'); g.addColorStop(1, 'rgba(56,189,248,0.02)');
+    ctx.fillStyle = g; ctx.fillRect(BX, 0, W - BX, H);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(45,212,191,0.75)'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 6]);
+    ctx.beginPath(); ctx.moveTo(BX, 36); ctx.lineTo(BX, H - 40); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = '#0B1220'; ctx.strokeStyle = 'rgba(45,212,191,0.9)'; ctx.lineWidth = 1.5;
+    rr(GATE.x - 21, GATE.y - 22, 42, 44, 8); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(45,212,191,0.95)'; ctx.font = '600 9px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('POLICY', GATE.x, GATE.y - 2); ctx.fillText('GATE', GATE.x, GATE.y + 9);
+
+    // raw events flow in, slow down and are absorbed at the gate: they never cross
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i];
+      if (dt) {
+        const dx = p.x - mouse.x, dy = p.y - mouse.y, d2 = dx * dx + dy * dy;
+        if (mouse.on && d2 < 8100) { const f = (1 - Math.sqrt(d2) / 90) * 260 * dt, inv = 1 / Math.sqrt(d2 + 1); p.vx += dx * inv * f; p.vy += dy * inv * f; }
+        if (p.x > BX - 120) {
+          p.vx += (GATE.x - 30 - p.x) * 2.2 * dt; p.vy += (GATE.y - p.y) * 2 * dt;
+          p.vx *= 1 - 2.4 * dt; p.vy *= 1 - 2.4 * dt; p.life -= dt * (p.secret ? 0.45 : 0.8);
+        } else { p.vy += (Math.random() - 0.5) * 30 * dt; p.vy *= 1 - 0.8 * dt; p.vx += (70 - p.vx) * 0.6 * dt; }
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        if (p.x > BX - 6) { p.x = BX - 6; p.vx = -Math.abs(p.vx) * 0.3; }   // hard stop at the boundary
+        p.y = Math.min(H - 36, Math.max(30, p.y));
+        if (p.life <= 0) { parts.splice(i, 1); continue; }
+      }
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
+      if (p.secret) { ctx.fillStyle = 'rgba(251,113,133,0.25)'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 2.6, 0, 6.283); ctx.fill(); }
+      ctx.fillStyle = p.secret ? '#FB7185' : '#7C8AA5';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // sanitized payloads: amber while buffered, teal when the SaaS receipt digest matches
+    let queue = 0, docked = 0;
+    const dockX = W - Math.max(28, W * 0.06);
+    for (const m of markers.values()) {
+      if (!dt && m.status === 'acked') {
+        // still frame: received payloads rest on the SaaS side, never on the local side
+        if (docked < 24) {
+          const x = BX + 36 + (docked % 8) * 16, y = GATE.y - 24 + Math.floor(docked / 8) * 16;
+          ctx.fillStyle = m.match === 1 ? '#2DD4BF' : '#F5B43C'; rr(x - 5, y - 5, 10, 10, 3); ctx.fill();
+        }
+        docked++;
+        continue;
+      }
+      if (m.status === 'pending') {
+        queue++;
+        m.x = BX - 50 - (((queue - 1) % 10) + 1) * 7; m.y = GATE.y + 34 + Math.floor((queue - 1) / 10) * 9;
+        if (queue <= 30) { ctx.fillStyle = '#F5B43C'; ctx.fillRect(m.x - 3, m.y - 3, 6, 6); }
+        continue;
+      }
+      if (m.status !== 'acked') { m.done = true; continue; }
+      if (dt) { m.t += dt; m.x += (dockX - m.x) * Math.min(1, 1.6 * dt) + 40 * dt; m.y += (GATE.y - m.y) * 0.8 * dt; }
+      const a = dt ? Math.max(0, 1 - Math.max(0, m.t - 2.2) / 0.8) : 1;
+      if (a <= 0) { m.done = true; continue; }
+      ctx.globalAlpha = a;
+      ctx.fillStyle = m.match === 1 ? '#2DD4BF' : '#F5B43C';
+      rr(m.x - 5, m.y - 5, 10, 10, 3); ctx.fill();
+      if (m.match === 1 && m.x > dockX - 30) { ctx.strokeStyle = 'rgba(45,212,191,0.8)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(m.x, m.y, 10, 0, 6.283); ctx.stroke(); }
+    }
+    ctx.globalAlpha = 1;
+    if (queue > 30) { ctx.fillStyle = '#F5B43C'; ctx.font = '600 11px ui-sans-serif, system-ui'; ctx.textAlign = 'right'; ctx.fillText('+' + (queue - 30) + ' buffered', BX - 34, GATE.y + 74); }
+
+    if (!S || (!eventRate && !parts.length && !markers.size)) {
+      ctx.fillStyle = 'rgba(154,168,187,0.9)'; ctx.font = '500 13px ui-sans-serif, system-ui'; ctx.textAlign = 'center';
+      ctx.fillText(S ? 'waiting for data' : 'collector unreachable — waiting for data', BX / 2, H / 2);
+    }
+  }
+
+  function frame(t) {
+    if (!anim) return;
+    const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
+    // dot rate follows the real event rate, scaled down so the scene stays readable
+    spawnAcc += Math.min(eventRate, 60) * 0.5 * dt;
+    while (spawnAcc >= 1 && parts.length < 400) { spawnRaw(false); spawnAcc -= 1; }
+    drawScene(dt);
+    raf = requestAnimationFrame(frame);
+  }
+
+  // reduced motion or hidden tab: one still frame, dot count from the real event rate, fixed positions
+  function drawStatic() {
+    if (!ctx || !W) return;
+    parts.length = 0;
+    let seed = 7;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const n = Math.min(120, Math.round(eventRate * 4));
+    for (let i = 0; i < n; i++) parts.push({ x: 20 + rnd() * (BX - 170), y: H * (0.18 + rnd() * 0.64), vx: 0, vy: 0, r: 1.8, secret: false, life: 1 });
+    drawScene(0);
+  }
+
+  function setAnim() {
+    const want = !!ctx && !reduced.matches && !document.hidden;
+    if (want && !anim) { anim = true; last = performance.now(); raf = requestAnimationFrame(frame); }
+    else if (!want && anim) { anim = false; cancelAnimationFrame(raf); }
+    if (!want) drawStatic();
+  }
+
+  if (ctx) {
+    resize();
+    new ResizeObserver(() => { resize(); if (!anim) drawStatic(); }).observe(cv);
+    cv.addEventListener('pointermove', e => { const r = cv.getBoundingClientRect(); mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top; mouse.on = true; }, { passive: true });
+    cv.addEventListener('pointerleave', () => { mouse.on = false; }, { passive: true });
+    if (reduced.addEventListener) reduced.addEventListener('change', setAnim); else reduced.addListener(setAnim);
+  }
+  document.addEventListener('visibilitychange', () => { setAnim(); if (!document.hidden) { poll(); pollSecrets(); pollDelivery(); } });
+
+  setAnim();
+  pollSecrets().then(poll);
+  pollDelivery();
+  setInterval(poll, 2500);
+  setInterval(pollSecrets, 10000);
+  setInterval(pollDelivery, 15000);
+})();
+</script>
+</body>
+</html>
