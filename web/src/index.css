@@ -3,37 +3,108 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --bg: #09090b;
+    --surface: #111113;
+    --border: rgba(255,255,255,0.07);
+    --text: #f4f4f5;
+    --muted: #71717a;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    background-color: #08080a;
-    color: #f4f4f5;
+    background-color: var(--bg);
+    color: var(--text);
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  * {
+    box-sizing: border-box;
   }
 }
 
-/* Custom minimal scrollbar */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-::-webkit-scrollbar-track {
-  background: #08080a;
-}
-::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #09090b; }
+::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+/* Noise texture overlay */
+.noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
 }
 
-/* Subtle editorial grid */
-.cyber-grid {
-  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 32px 32px;
+/* Dark card surface */
+.card {
+  background: #111113;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px;
 }
 
-.editorial-card {
-  background: #111114;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.card:hover {
+  border-color: rgba(255,255,255,0.14);
 }
+
+/* Subtle horizontal rule */
+.hr { border-color: rgba(255,255,255,0.07); }
+
+/* Grid pattern */
+.dot-grid {
+  background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Smooth live pulse */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.pulse-soft { animation: pulse-soft 2.4s ease-in-out infinite; }
+
+/* Scroll-in fade */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.6s ease both; }
+
+/* Code monospace block */
+.code-block {
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #a1a1aa;
+  background: #0d0d10;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 14px;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+/* Status pill */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-family: 'Fira Code', monospace;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid;
+}
+.pill-green  { color: #34d399; border-color: rgba(52,211,153,0.25); background: rgba(52,211,153,0.07); }
+.pill-amber  { color: #fbbf24; border-color: rgba(251,191,36,0.25);  background: rgba(251,191,36,0.07); }
+.pill-red    { color: #f87171; border-color: rgba(248,113,113,0.25); background: rgba(248,113,113,0.07); }
+.pill-cyan   { color: #38bdf8; border-color: rgba(56,189,248,0.25);  background: rgba(56,189,248,0.07); }
+.pill-white  { color: #e4e4e7; border-color: rgba(228,228,231,0.2);  background: rgba(228,228,231,0.05); }
