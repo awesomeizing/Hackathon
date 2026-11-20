@@ -1,3 +1,4 @@
+import { subscribeToTenantRealtime } from '../lib/supabase';
 import React, { useState, useEffect } from 'react';
 import {
   Activity,
@@ -94,8 +95,14 @@ export default function CommandCenter({
   useEffect(() => {
     fetchData();
     const timer = setInterval(fetchData, 1500);
-    return () => clearInterval(timer);
-  }, [tenantToken]);
+    const unsubscribe = subscribeToTenantRealtime(activeTenant, () => {
+      fetchData();
+    });
+    return () => {
+      clearInterval(timer);
+      unsubscribe();
+    };
+  }, [tenantToken, activeTenant]);
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
@@ -193,6 +200,17 @@ export default function CommandCenter({
             <span className="px-2.5 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 font-mono text-[10px]">
               LIVE
             </span>
+            {overview.supabase?.configured ? (
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 font-mono text-[10px] flex items-center gap-1.5" title="Connected to Supabase PostgreSQL & Realtime">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                SUPABASE TIER-2
+              </span>
+            ) : (
+              <span className="px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-neutral-400 font-mono text-[10px] flex items-center gap-1.5" title="Local-First Zero-Trust Fallback: Local SQLite WAL Active">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                LOCAL WAL STORE
+              </span>
+            )}
           </div>
           <p className="text-xs text-neutral-400 font-mono mt-1">
             Tenant: <span className="text-white font-medium">{tenantName}</span> &middot; Region: ap-south-1

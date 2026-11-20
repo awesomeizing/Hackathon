@@ -1,4 +1,5 @@
 'use strict';
+try { require('dotenv').config(); } catch {}
 // Tier 2 · regional SaaS ingest + dashboard API. The tenant is derived ONLY from the presented credential;
 // no request parameter can select a tenant. Tenants homed in another region get 421 and nothing is written.
 const fs = require('node:fs');

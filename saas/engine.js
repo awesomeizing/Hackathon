@@ -4,6 +4,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
+const supabaseBridge = require('./supabase-client');
 
 const STATES = ['Excellent', 'Good', 'Fair', 'Poor'];
 const rank = s => (s ? STATES.indexOf(s) : -1);
@@ -113,6 +114,7 @@ class TenantStore {
     this.db.prepare(`update collectors set last_seen = ?, last_seen_ms = ?, version = ?, cpu_pct = ?, rss_mb = ?, buffered = ?,
       config_hash = ?, policy_version = ?, stream = ? where collector_id = ?`)
       .run(iso(nowMs), nowMs, hb.version, hb.cpu_pct, hb.rss_mb, hb.buffered, hb.config_hash, hb.policy_version, hb.stream, hb.collector_id);
+    supabaseBridge.syncCollectorHeartbeat(this.tenant.id, hb, nowMs).catch(() => {});
   }
 
   // Idempotent by payload_id; records placed by event time; late records stored but kept out of baselines.
@@ -146,6 +148,7 @@ class TenantStore {
       const backlog = nowMs - Date.parse(p.created_at) > 5000;
       this.timing(backlog ? 'ingest_backlog' : 'ingest', p.payload_id, p.stream, nowMs - minMs, nowMs);
       this.db.exec('commit');
+      supabaseBridge.syncTelemetry(this.tenant.id, p, digest, nowMs).catch(() => {});
     } catch (e) { this.db.exec('rollback'); throw e; }
     return { ...base, status: 'stored', records_stored: recs.length, late_records: late };
   }
@@ -276,6 +279,7 @@ class TenantStore {
     const r = { state: 'executed_simulated', action: action.id, label: action.label, approved_by: actor, approved_at: iso(nowMs), rollback: action.rollback, checks };
     this.audit('system', 'remediation_executed_simulated', { incident: id, action: action.id, note: 'Simulation only: no real system was changed' });
     this.db.prepare('update incidents set remediation = ? where id = ?').run(JSON.stringify(r), id);
+    supabaseBridge.recordRemediationAudit(this.tenant.id, id, action.id, actor, 'applied', `rb-${id}-${nowMs}`).catch(() => {});
     return { status: 200, ok, remediation: r };
   }
 
@@ -286,6 +290,7 @@ class TenantStore {
     Object.assign(rem, { state: 'rolled_back', rolled_back_by: actor, rolled_back_at: iso(nowMs) });
     this.audit(actor, 'remediation_rolled_back_simulated', { incident: id, action: rem.action, rollback: rem.rollback });
     this.db.prepare('update incidents set remediation = ? where id = ?').run(JSON.stringify(rem), id);
+    supabaseBridge.recordRemediationAudit(this.tenant.id, id, rem.action, actor, 'rolled_back', `rb-${id}-${nowMs}`).catch(() => {});
     return { status: 200, ok: true, remediation: rem };
   }
 
@@ -308,6 +313,9 @@ class TenantStore {
     if (prev === state) return;
     this.db.prepare('insert into transitions(at, entity, from_state, to_state, reasons) values (?,?,?,?,?)').run(iso(nowMs), entity, prev ?? 'none', state, JSON.stringify(reasons));
     this.prev.set(entity, state);
+    const entityType = entity.startsWith('collector:') ? 'collector' : 'source';
+    const entityId = entity.split(':')[1] || entity;
+    supabaseBridge.recordHealthTransition(this.tenant.id, entityType, entityId, prev ?? 'none', state, Array.isArray(reasons) ? reasons.join('; ') : String(reasons)).catch(() => {});
   }
 
   // Runs every second: health states, stale/offline detection, transitions, incident resolution.
@@ -387,7 +395,8 @@ class TenantStore {
     const one = sql => this.db.prepare(sql).get();
     const parse = (row, ...keys) => { for (const k of keys) row[k] = row[k] ? JSON.parse(row[k]) : null; return row; };
     return {
-      tenant: { id: this.tenant.id, name: this.tenant.name, home_region: this.tenant.home_region }, region: this.region, now: iso(nowMs),
+      tenant: { id: this.tenant.id, name: this.tenant.name, home_region: this.tenant.home_region },
+      supabase: supabaseBridge.getStatus(), region: this.region, now: iso(nowMs),
       ...this.lastHealth,
       incidents: this.db.prepare('select * from incidents order by id desc limit 15').all().map(r => parse(r, 'sources', 'signals', 'recommendation', 'remediation')),
       alerts: this.db.prepare('select * from alerts order by id desc limit 25').all().map(r => parse(r, 'detail')),
