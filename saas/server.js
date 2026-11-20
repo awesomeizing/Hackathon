@@ -33,7 +33,15 @@ const storeFor = t => {
 for (const t of registry.tenants) storeFor(t);
 setInterval(() => { for (const s of stores.values()) s.tick(); }, 1000);
 
-const bearerHash = req => { const m = /^Bearer (\S{16,200})$/.exec(req.headers.authorization || ''); return m ? P.sha256(m[1]) : null; };
+const bearerHash = req => {
+  const m = /^Bearer (\S{16,200})$/.exec(req.headers.authorization || '');
+  if (m) return P.sha256(m[1]);
+  // Also check query parameter ?token= for SSE EventSource connections
+  const u = new URL(req.url, 'http://127.0.0.1');
+  const qToken = u.searchParams.get('token');
+  return qToken && qToken.length >= 16 ? P.sha256(qToken) : null;
+};
+
 function readBody(req, limit) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -97,11 +105,51 @@ async function collectorApi(req, res, u, send) {
 }
 
 async function viewerApi(req, res, u, send) {
-  const t = byViewer.get(bearerHash(req));
+  // Public loopback token lookup for dashboard convenience
+  if (req.method === 'GET' && u.pathname === '/api/viewer-tokens') {
+    try {
+      const tokens = JSON.parse(fs.readFileSync(statePath('viewer-tokens.json'), 'utf8'));
+      return send(200, tokens);
+    } catch {
+      return send(200, {});
+    }
+  }
+
+  // Automatic fallback to acme tenant if viewing on loopback without explicit token
+  let tokenHash = bearerHash(req);
+  if (!tokenHash && ['127.0.0.1', 'localhost'].includes(req.headers.host?.split(':')[0])) {
+    try {
+      const tokens = JSON.parse(fs.readFileSync(statePath('viewer-tokens.json'), 'utf8'));
+      if (tokens.acme) tokenHash = P.sha256(tokens.acme);
+    } catch {}
+  }
+
+  const t = tokenHash && byViewer.get(tokenHash);
   if (!t) return send(401, { error: 'viewer token required' });
   if (t.home_region !== REGION) return send(421, { error: `tenant is served from ${t.home_region}`, home_region: t.home_region });
   const s = storeFor(t);
   const actor = `viewer@${t.id}`;
+
+  // Server-Sent Events (SSE) sub-second streaming
+  if (req.method === 'GET' && u.pathname === '/api/stream') {
+    res.writeHead(200, {
+      'content-type': 'text/event-stream',
+      'cache-control': 'no-cache',
+      'connection': 'keep-alive',
+      'access-control-allow-origin': '*',
+    });
+    res.write(`event: overview\ndata: ${JSON.stringify(s.overview())}\n\n`);
+    const interval = setInterval(() => {
+      try {
+        res.write(`event: overview\ndata: ${JSON.stringify(s.overview())}\n\n`);
+      } catch {
+        clearInterval(interval);
+      }
+    }, 1000);
+    req.on('close', () => clearInterval(interval));
+    return;
+  }
+
   if (req.method === 'GET' && u.pathname === '/api/overview') return send(200, s.overview());
   if (req.method === 'GET' && u.pathname === '/api/series') return send(200, s.series(u.searchParams.get('source_id') || '', u.searchParams.get('metric') || ''));
   if (req.method === 'POST' && u.pathname === '/api/timing') { s.addRenderTimings((await json(req)).samples); return send(200, { ok: true }); }
@@ -113,7 +161,51 @@ async function viewerApi(req, res, u, send) {
   send(404, { error: 'not found' });
 }
 
-const DASHBOARD = path.join(__dirname, 'dashboard.html');
+// Proxy collector API requests from /collector-api/* to http://127.0.0.1:7100/api/*
+function proxyCollector(req, res, targetPath) {
+  const proxyReq = http.request({
+    hostname: '127.0.0.1',
+    port: 7100,
+    path: targetPath,
+    method: req.method,
+    headers: { ...req.headers, host: '127.0.0.1:7100' },
+  }, proxyRes => {
+    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    proxyRes.pipe(res);
+  });
+  proxyReq.on('error', err => {
+    res.writeHead(502, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ error: `Collector proxy unavailable: ${err.message}` }));
+  });
+  req.pipe(proxyReq);
+}
+
+const DIST_DIR = path.join(__dirname, 'dist');
+const LEGACY_DASHBOARD = path.join(__dirname, 'dashboard.html');
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+};
+
+function serveStatic(res, filePath) {
+  if (fs.existsSync(filePath)) {
+    const ext = path.extname(filePath);
+    res.writeHead(200, {
+      'content-type': MIME[ext] || 'application/octet-stream',
+      'cache-control': ext === '.html' ? 'no-cache' : 'public, max-age=31536000',
+    });
+    fs.createReadStream(filePath).pipe(res);
+    return true;
+  }
+  return false;
+}
+
 function handler(isTls) {
   return async (req, res) => {
     const send = (code, obj, type = 'application/json') => {
@@ -127,8 +219,28 @@ function handler(isTls) {
         if (!isTls) return send(403, { error: 'collector traffic must use TLS' });
         return await collectorApi(req, res, u, send);
       }
+      if (u.pathname.startsWith('/collector-api/')) {
+        const target = '/api/' + u.pathname.slice('/collector-api/'.length) + (u.search || '');
+        return proxyCollector(req, res, target);
+      }
       if (u.pathname.startsWith('/api/')) return await viewerApi(req, res, u, send);
-      if (req.method === 'GET' && u.pathname === '/') return send(200, fs.readFileSync(DASHBOARD), 'text/html; charset=utf-8');
+
+      // Serve React Vite frontend if built in saas/dist/
+      if (fs.existsSync(DIST_DIR)) {
+        if (u.pathname.startsWith('/assets/')) {
+          const assetFile = path.join(DIST_DIR, 'assets', path.basename(u.pathname));
+          if (serveStatic(res, assetFile)) return;
+        }
+        if (u.pathname === '/' || !path.extname(u.pathname)) {
+          if (serveStatic(res, path.join(DIST_DIR, 'index.html'))) return;
+        }
+      }
+
+      // Fallback to legacy dashboard.html
+      if (req.method === 'GET' && u.pathname === '/') {
+        return send(200, fs.readFileSync(LEGACY_DASHBOARD), 'text/html; charset=utf-8');
+      }
+
       send(404, { error: 'not found' });
     } catch (e) {
       send(e.status || 500, { error: e.status ? e.message : 'internal error' });

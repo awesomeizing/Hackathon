@@ -20,8 +20,8 @@ const cfgPath = statePath('collectors', `${NAME}.json`);
 if (!fs.existsSync(cfgPath)) { console.error(`Missing ${cfgPath}. Run: npm run setup`); process.exit(1); }
 const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
 const CA = fs.readFileSync(statePath('certs', 'ca.crt'));
-const STREAM_FILE = process.env.STREAM_FILE || '';
-const STREAM_URL = process.env.STREAM_URL || (STREAM_FILE ? '' : 'http://127.0.0.1:7200/stream');
+let STREAM_FILE = process.env.STREAM_FILE || '';
+let STREAM_URL = process.env.STREAM_URL || (STREAM_FILE ? '' : 'http://127.0.0.1:7200/stream');
 const STREAM_AUTH_HEADER_NAME = process.env.STREAM_AUTH_HEADER_NAME || '';
 const STREAM_AUTH_HEADER_VALUE = process.env.STREAM_AUTH_HEADER_VALUE || '';
 const STREAM_BEARER_TOKEN = process.env.STREAM_BEARER_TOKEN || '';
@@ -30,11 +30,11 @@ if (!!STREAM_AUTH_HEADER_NAME !== !!STREAM_AUTH_HEADER_VALUE) throw new Error('S
 if (STREAM_AUTH_HEADER_NAME && (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(STREAM_AUTH_HEADER_NAME) || /^(host|content-length|transfer-encoding|connection)$/i.test(STREAM_AUTH_HEADER_NAME))) {
   throw new Error('STREAM_AUTH_HEADER_NAME is not an allowed header name');
 }
-const STREAM_HEADERS = STREAM_BEARER_TOKEN
+let STREAM_HEADERS = STREAM_BEARER_TOKEN
   ? { authorization: `Bearer ${STREAM_BEARER_TOKEN}` }
   : STREAM_AUTH_HEADER_NAME ? { [STREAM_AUTH_HEADER_NAME]: STREAM_AUTH_HEADER_VALUE } : {};
 // Default label is "simulated"; the organizer label must be set explicitly so we never over-claim.
-const STREAM_KIND = process.env.STREAM_KIND === 'organizer' ? 'organizer' : 'simulated';
+let STREAM_KIND = process.env.STREAM_KIND === 'organizer' ? 'organizer' : 'simulated';
 const WINDOW_MS = Number(process.env.WINDOW_MS || 2000);
 const RAW_TTL_MIN = Number(process.env.RAW_TTL_MIN || 60);
 const UI_PORT = Number(process.env.UI_PORT || cfg.ui_port || 7100);
@@ -329,6 +329,35 @@ http.createServer(async (req, res) => {
     if (req.method === 'GET' && u.pathname.startsWith('/api/payload/')) {
       const row = q.payloadById.get(decodeURIComponent(u.pathname.slice('/api/payload/'.length)));
       return row ? send(200, rowOut(row)) : send(404, { error: 'not found' });
+    }
+    if (req.method === 'POST' && u.pathname === '/api/stream/switch') {
+      let b = '';
+      req.on('data', c => { b += c; });
+      req.on('end', () => {
+        let j = {};
+        try { j = JSON.parse(b); } catch {}
+        if (j.url) {
+          STREAM_URL = j.url;
+          stream.source = j.url;
+          stream.kind = j.kind || 'organizer';
+          if (j.token) STREAM_HEADERS = { authorization: 'Bearer ' + j.token };
+          readUrl();
+        } else if (j.file) {
+          STREAM_FILE = j.file;
+          STREAM_URL = '';
+          stream.source = j.file;
+          stream.kind = j.kind || 'organizer';
+          readFile();
+        } else if (j.type === 'simulated') {
+          STREAM_URL = 'http://127.0.0.1:7200/stream';
+          STREAM_FILE = '';
+          stream.source = 'simulated';
+          stream.kind = 'simulated';
+          readUrl();
+        }
+        send(200, { ok: true, stream });
+      });
+      return;
     }
     if (req.method === 'POST' && u.pathname.startsWith('/api/inject/')) {
       if (req.headers['x-sp-ui'] !== '1') return send(403, { error: 'missing x-sp-ui header' });
