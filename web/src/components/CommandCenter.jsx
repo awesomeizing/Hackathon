@@ -393,7 +393,14 @@ export default function CommandCenter({
           <HealthMatrix
             sources={overview.sources || []}
             collectors={overview.collectors || []}
-            fleetState={overview.fleet_state || 'Good'}
+            fleetState={
+              overview.fleet_state ||
+              (overview.sources && overview.sources.length > 0
+                ? (overview.sources.some(s => s.state === 'Poor') ? 'Poor'
+                   : overview.sources.some(s => s.state === 'Fair') ? 'Fair'
+                   : overview.sources.every(s => s.state === 'Excellent') ? 'Excellent' : 'Good')
+                : 'Good')
+            }
             timing={overview.timing || {}}
           />
         )}

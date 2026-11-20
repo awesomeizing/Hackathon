@@ -398,6 +398,7 @@ class TenantStore {
       tenant: { id: this.tenant.id, name: this.tenant.name, home_region: this.tenant.home_region },
       supabase: supabaseBridge.getStatus(), region: this.region, now: iso(nowMs),
       ...this.lastHealth,
+      fleet_state: (this.lastHealth.sources && this.lastHealth.sources.length > 0) ? (this.lastHealth.sources.some(s => s.state === 'Poor') ? 'Poor' : this.lastHealth.sources.some(s => s.state === 'Fair') ? 'Fair' : this.lastHealth.sources.every(s => s.state === 'Excellent') ? 'Excellent' : 'Good') : 'Good',
       incidents: this.db.prepare('select * from incidents order by id desc limit 15').all().map(r => parse(r, 'sources', 'signals', 'recommendation', 'remediation')),
       alerts: this.db.prepare('select * from alerts order by id desc limit 25').all().map(r => parse(r, 'detail')),
       transitions: this.db.prepare('select * from transitions order by id desc limit 40').all().map(r => parse(r, 'reasons')),
