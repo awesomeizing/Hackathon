@@ -80,9 +80,10 @@ const SCHEMA = `
 
 class TenantStore {
   constructor(tenant, region, dir, th) {
-    fs.mkdirSync(dir, { recursive: true });
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(tenant.id)) throw new Error('tenant ID must be a safe path segment');
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
     this.tenant = tenant; this.region = region; this.th = th;
-    this.db = new DatabaseSync(path.join(dir, `${tenant.id}.db`));
+    this.db = new DatabaseSync(path.join(dir, `${tenant.id}.db`), { timeout: 5000 });   // wait out brief lock contention (C5a)
     this.db.exec(SCHEMA);
     this.series = new Map();   // "src|metric" -> baseline + current level
     this.sec = new Map();      // src -> latest security summary state
@@ -119,7 +120,9 @@ class TenantStore {
     const base = { payload_id: p.payload_id, received_digest: digest, received_at: iso(nowMs), region: this.region };
     const dup = this.db.prepare('select digest from payloads where payload_id = ?').get(p.payload_id);
     if (dup) {
-      this.audit(`collector:${p.collector_id}`, 'ingest_duplicate', { payload_id: p.payload_id, same_digest: dup.digest === digest });
+      const sameDigest = dup.digest === digest;
+      this.audit(`collector:${p.collector_id}`, sameDigest ? 'ingest_duplicate' : 'payload_id_conflict', { payload_id: p.payload_id, same_digest: sameDigest });
+      if (!sameDigest) return { ...base, status: 'conflict', stored_digest: dup.digest, records_stored: 0 };
       return { ...base, status: 'duplicate', stored_digest: dup.digest, records_stored: 0 };
     }
     const recs = p.records.map((r, i) => ({ r, i, ms: Date.parse(r.event_time) })).sort((a, b) => a.ms - b.ms);

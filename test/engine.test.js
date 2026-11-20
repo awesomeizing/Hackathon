@@ -18,9 +18,14 @@ const metric = (src, m, v, t) => ({ kind: 'metric', event_time: iso(t), source_i
 test('duplicates are idempotent and late records are placed but kept out of the baseline', () => {
   const s = new TenantStore({ id: 'dup', name: 'Dup', home_region: 'ap-south' }, 'ap-south', dir, th);
   const p = payload([metric('src-0000000001', 'cpu_pct', 30, T0 + 10000)], T0 + 10000);
-  assert.equal(s.ingest(p, 'd', T0 + 11000).status, 'stored');
-  const again = s.ingest(p, 'd', T0 + 12000);
+  const digest = P.sha256(P.canonical(p));
+  assert.equal(s.ingest(p, digest, T0 + 11000).status, 'stored');
+  const again = s.ingest(p, digest, T0 + 12000);
   assert.equal(again.status, 'duplicate'); assert.equal(again.records_stored, 0);
+  const altered = { ...p, records: [{ ...p.records[0], avg: 99, max: 99, last: 99 }] };
+  const conflict = s.ingest(altered, P.sha256(P.canonical(altered)), T0 + 12500);
+  assert.equal(conflict.status, 'conflict'); assert.equal(conflict.records_stored, 0);
+  assert.equal(s.db.prepare('select count(*) n from records').get().n, 1);
   const late = s.ingest(payload([metric('src-0000000001', 'cpu_pct', 99, T0)], T0), 'e', T0 + 13000);
   assert.equal(late.late_records, 1);
   assert.equal(s.series.get('src-0000000001|cpu_pct').last, 30);   // latest value not overwritten by the late record
@@ -56,6 +61,10 @@ test('tenant stores are separate files: one tenant never sees another tenant\'s 
   assert.equal(a.overview(T0 + 1000).sources.length, 1);
   assert.equal(b.overview(T0 + 1000).sources.length, 0);
   assert.notEqual(a.db, b.db);
+});
+
+test('tenant IDs cannot escape the state directory through the SQLite filename', () => {
+  assert.throws(() => new TenantStore({ id: '../outside', name: 'Bad', home_region: 'ap-south' }, 'ap-south', dir, th), /safe path segment/);
 });
 
 test('stale data downgrades a state instead of showing the last good value; silence means Poor', () => {

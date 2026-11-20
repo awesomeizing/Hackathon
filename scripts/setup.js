@@ -1,18 +1,20 @@
 'use strict';
 // One-time local setup: demo CA + SaaS TLS cert, tenant registry (hashes only), collector credentials.
-// Everything lands in .local/ (git-ignored). Re-run with --force to rotate all of it.
+// Runtime state lands outside the source tree by default. Re-run with --force to rotate all of it.
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 const { sha256 } = require('../shared/policy');
+const { STATE_DIR, statePath, ensureStateDir } = require('../shared/state-dir');
 
-const ROOT = path.join(__dirname, '..');
-const L = path.join(ROOT, '.local');
+process.umask(0o077);
+ensureStateDir();
+const L = STATE_DIR;
 const force = process.argv.includes('--force');
-if (fs.existsSync(path.join(L, 'tenants.json')) && !force) { console.log('.local already set up (use --force to rotate)'); process.exit(0); }
-fs.mkdirSync(path.join(L, 'certs'), { recursive: true });
-fs.mkdirSync(path.join(L, 'collectors'), { recursive: true });
+if (fs.existsSync(statePath('tenants.json')) && !force) { console.log(`Already set up in ${L} (use --force to rotate)`); process.exit(0); }
+fs.mkdirSync(statePath('certs'), { recursive: true, mode: 0o700 });
+fs.mkdirSync(statePath('collectors'), { recursive: true, mode: 0o700 });
 
 const OPENSSL = ['openssl', 'C:\\Program Files\\Git\\usr\\bin\\openssl.exe', 'C:\\Program Files\\Git\\mingw64\\bin\\openssl.exe']
   .find(c => { try { execFileSync(c, ['version'], { stdio: 'ignore' }); return true; } catch { return false; } });
@@ -49,7 +51,7 @@ for (const t of TENANTS) {
   }
   registry.tenants.push({ id: t.id, name: t.name, home_region: t.home_region, viewer_token_sha256: sha256(viewer), collector_key_sha256: keys });
 }
-fs.writeFileSync(path.join(L, 'tenants.json'), JSON.stringify(registry, null, 2));
+fs.writeFileSync(path.join(L, 'tenants.json'), JSON.stringify(registry, null, 2), { mode: 0o600 });
 fs.writeFileSync(path.join(L, 'viewer-tokens.json'), JSON.stringify(viewers, null, 2), { mode: 0o600 });
-console.log('Setup done. Demo CA, SaaS cert, 3 tenants, 3 collectors.');
-console.log('Dashboard viewer tokens are in .local/viewer-tokens.json (local only).');
+console.log(`Setup done. Demo CA, SaaS cert, 3 tenants, 3 collectors in ${L}.`);
+console.log(`Dashboard viewer tokens are in ${statePath('viewer-tokens.json')} (local only).`);

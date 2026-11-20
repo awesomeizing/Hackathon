@@ -5,11 +5,13 @@ labelled `SIMULATED` on screen and in the timing table; it is never presented as
 
 ## Setup (once)
 ```bash
-npm run certs        # demo CA + SaaS cert (local only)
+npm run setup        # demo CA + SaaS cert + tenants; prints the local state directory
+npm run sim          # simulator (terminal 0, only for dry runs)
 npm run saas         # terminal 1 — https://localhost:8443
 npm run collector    # terminal 2 — http://127.0.0.1:7100  (STREAM_URL=… for organizer stream)
 ```
-Screens: left = collector (egress proof panel), right = SaaS dashboard (tenant `acme`).
+On Windows the default state directory is `%LOCALAPPDATA%\SignalPassport\CICADA`. Keep `SP_STATE_DIR` consistent
+in every terminal if overriding it. Screens: left = collector (egress proof panel), right = SaaS dashboard (tenant `acme`).
 
 ## Scenarios (target ≤ 10 min total)
 
@@ -36,8 +38,9 @@ Screens: left = collector (egress proof panel), right = SaaS dashboard (tenant `
 | Offline detection | ≤ 60 s | last heartbeat vs status change to Poor | 30.7 s (dry run) | simulated — redo on organizer |
 | Backlog after reconnect | 0 loss, 0 dup | `npm run verify` | 95/95/95, 0 dup (dry run) | simulated — redo on organizer |
 
-Start each judged run on fresh data (stop all, delete `collector/data` and `saas/data`, restart) so earlier dry-run
-traffic does not mix into `verify`. Note: run `verify` before `replay`, or the replay tool's own payloads are listed as excluded.
+Start each judged run with a fresh, local `SP_STATE_DIR` and run setup once for it so earlier dry-run traffic does not
+mix into `verify`. Keep the same state directory in all terminals. Note: run `verify` before `replay`, or the replay
+tool's own payloads are listed as excluded. `verify` fails if any batch is pending, rejected, or dropped.
 
 ## Judge answers (short)
 - **What leaves?** Only `signal-passport/1` fields: enums, numbers, UTC times, pseudonymous IDs. No free text.
@@ -46,7 +49,7 @@ traffic does not mix into `verify`. Note: run `verify` before `replay`, or the r
 - **Auth/encryption?** TLS with a pinned CA; per-collector bearer key stored hashed; tenant derived from the key.
 - **Last payload?** Egress proof panel → latest row → exact bytes, passport, receipt.
 - **Real anomaly vs spike?** EWMA baseline plus z ≥ 3, a minimum delta, and multi-signal agreement raise confidence.
-- **Correlation?** Same source within 60 s, or network plus service signals → one incident.
+- **Correlation?** Same source (or same collector) within 60 s → one incident; cross-source topology needs a service map.
 - **Why this action?** The recommendation lists its trigger signals, the baseline values and the rule that fired.
 - **Before automation?** Allow-listed reversible actions, human approval, audit trail, rollback, blast-radius limits.
 - **SaaS down?** Outbox buffers in SQLite; retries with backoff; resends dedup by `payload_id`.

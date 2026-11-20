@@ -6,13 +6,16 @@ const path = require('node:path');
 const https = require('node:https');
 const http = require('node:http');
 const P = require('../shared/policy');
+const { statePath, ensureStateDir } = require('../shared/state-dir');
 const { TenantStore } = require('./engine');
 
-const ROOT = path.join(__dirname, '..');
+process.umask(0o077);
+ensureStateDir();
 const REGION = process.env.REGION || 'ap-south';
 const PORT = Number(process.env.PORT || 8443);
 const HTTP_PORT = Number(process.env.DASHBOARD_HTTP_PORT || 8080);
-const registry = JSON.parse(fs.readFileSync(path.join(ROOT, '.local', 'tenants.json'), 'utf8'));
+const BIND_HOST = process.env.BIND_HOST || '127.0.0.1';
+const registry = JSON.parse(fs.readFileSync(statePath('tenants.json'), 'utf8'));
 const thresholds = JSON.parse(fs.readFileSync(path.join(__dirname, 'config', 'thresholds.json'), 'utf8'));
 
 const byCollectorKey = new Map();
@@ -24,7 +27,7 @@ for (const t of registry.tenants) {
 const stores = new Map();
 const storeFor = t => {
   if (t.home_region !== REGION) return null;   // residency: never open a store for a foreign tenant
-  if (!stores.has(t.id)) stores.set(t.id, new TenantStore(t, REGION, path.join(__dirname, 'data', REGION), thresholds));
+  if (!stores.has(t.id)) stores.set(t.id, new TenantStore(t, REGION, statePath('saas-data', REGION), thresholds));
   return stores.get(t.id);
 };
 for (const t of registry.tenants) storeFor(t);
@@ -72,7 +75,8 @@ async function collectorApi(req, res, u, send) {
     if (p.region !== REGION) return send(421, { error: `payload addressed to ${p.region}, this is ${REGION}` });
     if (!s.bindCollector(p.collector_id, keyHash)) return send(403, { error: 'credential is bound to a different collector' });
     if (!timesSane(p, now)) return send(422, { error: 'timestamps outside accepted window (-24h..+5min)' });
-    return send(200, s.ingest(p, digest, now));
+    const receipt = s.ingest(p, digest, now);
+    return send(receipt.status === 'conflict' ? 409 : 200, receipt);
   }
   if (req.method === 'POST' && u.pathname === '/v1/heartbeat') {
     let hb;
@@ -133,7 +137,7 @@ function handler(isTls) {
   };
 }
 
-const tls = { key: fs.readFileSync(path.join(ROOT, '.local', 'certs', 'server.key')), cert: fs.readFileSync(path.join(ROOT, '.local', 'certs', 'server.crt')), minVersion: 'TLSv1.2' };
-https.createServer(tls, handler(true)).listen(PORT, () => console.log(`[saas ${REGION}] TLS ingest + dashboard https://localhost:${PORT}  tenants here: ${[...stores.keys()].join(', ')}`));
+const tls = { key: fs.readFileSync(statePath('certs', 'server.key')), cert: fs.readFileSync(statePath('certs', 'server.crt')), minVersion: 'TLSv1.2' };
+https.createServer(tls, handler(true)).listen(PORT, BIND_HOST, () => console.log(`[saas ${REGION}] TLS ingest + dashboard https://localhost:${PORT}  bind=${BIND_HOST}  tenants here: ${[...stores.keys()].join(', ')}`));
 // Loopback-only plain HTTP for the dashboard so a browser without the demo CA can view it. Collector ingest is refused here.
 http.createServer(handler(false)).listen(HTTP_PORT, '127.0.0.1', () => console.log(`[saas ${REGION}] dashboard (loopback) http://127.0.0.1:${HTTP_PORT}`));

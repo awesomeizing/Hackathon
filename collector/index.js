@@ -8,17 +8,31 @@ const https = require('node:https');
 const crypto = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
 const P = require('../shared/policy');
+const { statePath, ensureStateDir } = require('../shared/state-dir');
 const { findSecrets, normalize, Aggregator, DEFAULT_MAPPING } = require('./pipeline');
 
 const VERSION = '1.0.0';
-const ROOT = path.join(__dirname, '..');
 const NAME = process.env.COLLECTOR || 'acme-site-1';
-const cfgPath = path.join(ROOT, '.local', 'collectors', `${NAME}.json`);
+if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(NAME)) throw new Error('COLLECTOR must be 1–64 letters, numbers, underscores, or hyphens');
+process.umask(0o077);
+ensureStateDir();
+const cfgPath = statePath('collectors', `${NAME}.json`);
 if (!fs.existsSync(cfgPath)) { console.error(`Missing ${cfgPath}. Run: npm run setup`); process.exit(1); }
 const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
-const CA = fs.readFileSync(path.join(ROOT, '.local', 'certs', 'ca.crt'));
+const CA = fs.readFileSync(statePath('certs', 'ca.crt'));
 const STREAM_FILE = process.env.STREAM_FILE || '';
 const STREAM_URL = process.env.STREAM_URL || (STREAM_FILE ? '' : 'http://127.0.0.1:7200/stream');
+const STREAM_AUTH_HEADER_NAME = process.env.STREAM_AUTH_HEADER_NAME || '';
+const STREAM_AUTH_HEADER_VALUE = process.env.STREAM_AUTH_HEADER_VALUE || '';
+const STREAM_BEARER_TOKEN = process.env.STREAM_BEARER_TOKEN || '';
+if (STREAM_AUTH_HEADER_NAME && STREAM_BEARER_TOKEN) throw new Error('Set either STREAM_BEARER_TOKEN or STREAM_AUTH_HEADER_NAME/VALUE, not both');
+if (!!STREAM_AUTH_HEADER_NAME !== !!STREAM_AUTH_HEADER_VALUE) throw new Error('STREAM_AUTH_HEADER_NAME and STREAM_AUTH_HEADER_VALUE must be set together');
+if (STREAM_AUTH_HEADER_NAME && (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(STREAM_AUTH_HEADER_NAME) || /^(host|content-length|transfer-encoding|connection)$/i.test(STREAM_AUTH_HEADER_NAME))) {
+  throw new Error('STREAM_AUTH_HEADER_NAME is not an allowed header name');
+}
+const STREAM_HEADERS = STREAM_BEARER_TOKEN
+  ? { authorization: `Bearer ${STREAM_BEARER_TOKEN}` }
+  : STREAM_AUTH_HEADER_NAME ? { [STREAM_AUTH_HEADER_NAME]: STREAM_AUTH_HEADER_VALUE } : {};
 // Default label is "simulated"; the organizer label must be set explicitly so we never over-claim.
 const STREAM_KIND = process.env.STREAM_KIND === 'organizer' ? 'organizer' : 'simulated';
 const WINDOW_MS = Number(process.env.WINDOW_MS || 2000);
@@ -27,22 +41,34 @@ const UI_PORT = Number(process.env.UI_PORT || cfg.ui_port || 7100);
 const SAAS_URL = process.env.SAAS_URL || cfg.saas_url;
 const MAPPING = process.env.STREAM_MAPPING ? JSON.parse(fs.readFileSync(process.env.STREAM_MAPPING, 'utf8')) : DEFAULT_MAPPING;
 const BUFFER_CAP = 50000;
+const streamUrl = STREAM_URL ? new URL(STREAM_URL) : null;
+if (streamUrl && !['http:', 'https:'].includes(streamUrl.protocol)) throw new Error('STREAM_URL must use HTTP or HTTPS');
+if (streamUrl?.username || streamUrl?.password) throw new Error('Do not put credentials in STREAM_URL; configure a stream auth header instead');
+const streamHasAuth = Object.keys(STREAM_HEADERS).length > 0;
+const streamIsLoopback = streamUrl && (streamUrl.hostname === 'localhost' || streamUrl.hostname === '::1' || /^127(?:\.\d{1,3}){3}$/.test(streamUrl.hostname));
+if (streamHasAuth && streamUrl?.protocol !== 'https:' && !streamIsLoopback) throw new Error('Authenticated remote streams require HTTPS');
+if (/[\r\n]/.test(STREAM_AUTH_HEADER_VALUE) || /[\r\n]/.test(STREAM_BEARER_TOKEN)) throw new Error('Stream auth values cannot contain line breaks');
+const streamSource = STREAM_FILE ? 'file stream' : streamUrl ? `${streamUrl.protocol.slice(0, -1).toUpperCase()} endpoint` : 'not configured';
+const safeSaasOrigin = (() => { try { return new URL(SAAS_URL).origin; } catch { return 'configured endpoint'; } })();
 
-const dataDir = path.join(__dirname, 'data', NAME);
-fs.mkdirSync(dataDir, { recursive: true });
+const dataDir = statePath('collector-data', NAME);
+fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 });
 const saltPath = path.join(dataDir, 'salt');
 if (!fs.existsSync(saltPath)) fs.writeFileSync(saltPath, crypto.randomBytes(32).toString('hex'), { mode: 0o600 });
 const SALT = fs.readFileSync(saltPath, 'utf8');            // never leaves this machine
 const COLLECTOR_ID = P.pseudonym(SALT, 'col', NAME);
 const CONFIG_HASH = P.sha256(P.canonical({ policy: P.POLICY_VERSION, region: cfg.region, window: WINDOW_MS, stream: STREAM_KIND, mapping: MAPPING })).slice(0, 12);
 
-const db = new DatabaseSync(path.join(dataDir, 'collector.db'));
+// Wait up to 5 s for a lock held by another connection instead of crashing on SQLITE_BUSY (C5a).
+const db = new DatabaseSync(path.join(dataDir, 'collector.db'), { timeout: 5000 });
 db.exec(`
   pragma journal_mode = WAL;
   create table if not exists raw(id integer primary key, received_at integer, ts text, host text, kind text, line text, hits text, payload_id text);
   create table if not exists outbox(seq integer primary key, payload_id text unique, body text, passport text, status text, created_at text,
     attempts integer default 0, acked_at text, receipt text, match integer);
   create table if not exists audit(id integer primary key, at text, payload_id text, event text, detail text);
+  create table if not exists delivery_stats(name text primary key, value integer not null);
+  insert or ignore into delivery_stats(name, value) values ('dropped_buffer_cap', 0);
   create index if not exists outbox_status on outbox(status, seq);`);
 const q = {
   insertRaw: db.prepare('insert into raw(received_at, ts, host, kind, line, hits) values (?,?,?,?,?,?)'),
@@ -52,6 +78,9 @@ const q = {
   nextPending: db.prepare("select * from outbox where status = 'pending' order by seq limit 1"),
   pendingCount: db.prepare("select count(*) n from outbox where status = 'pending'"),
   oldestPending: db.prepare("select seq, payload_id, body from outbox where status = 'pending' order by seq limit 200"),
+  dropped: db.prepare("select payload_id from audit where event = 'dropped_buffer_cap' order by id"),
+  droppedCount: db.prepare("select value n from delivery_stats where name = 'dropped_buffer_cap'"),
+  incrementDropped: db.prepare("update delivery_stats set value = value + 1 where name = 'dropped_buffer_cap'"),
   dropPending: db.prepare('delete from outbox where seq = ?'),
   attempt: db.prepare('update outbox set attempts = attempts + 1 where seq = ?'),
   ack: db.prepare("update outbox set status = 'acked', acked_at = ?, receipt = ?, match = ? where seq = ?"),
@@ -73,7 +102,7 @@ const q = {
 const audit = (pid, event, detail = '') => q.audit.run(new Date().toISOString(), pid, event, String(detail).slice(0, 500));
 
 // ---- 1. Organizer telemetry adapter (NDJSON / SSE over HTTP(S), or a tailed file) ------------------
-const stream = { kind: STREAM_KIND, source: STREAM_URL || STREAM_FILE, connected: false, events: 0, unmapped: 0, lastError: null };
+const stream = { kind: STREAM_KIND, source: streamSource, connected: false, events: 0, unmapped: 0, lastError: null };
 const agg = new Aggregator(SALT);
 const hosts = new Set(db.prepare('select distinct host from raw').all().map(r => r.host));
 
@@ -99,15 +128,15 @@ function readUrl() {
   const st = { buf: '' };
   let done = false;
   const retry = msg => { if (done) return; done = true; stream.connected = false; stream.lastError = msg; setTimeout(readUrl, 1000); };
-  const req = (STREAM_URL.startsWith('https') ? https : http).get(STREAM_URL, res => {
+  const req = (STREAM_URL.startsWith('https') ? https : http).get(STREAM_URL, { headers: STREAM_HEADERS }, res => {
     if (res.statusCode !== 200) { res.resume(); return retry(`HTTP ${res.statusCode}`); }
     stream.connected = true; stream.lastError = null;
     res.setEncoding('utf8');
     res.on('data', c => splitLines(st, c));
     res.on('end', () => retry('stream ended'));
-    res.on('error', e => retry(e.message));
+    res.on('error', () => retry('stream read error'));
   });
-  req.on('error', e => retry(e.message));
+  req.on('error', e => retry(e.code || 'stream connection error'));
 }
 function readFile() {
   const st = { buf: '' };
@@ -115,7 +144,7 @@ function readFile() {
   stream.connected = true;
   setInterval(() => {
     let size;
-    try { size = fs.statSync(STREAM_FILE).size; } catch (e) { stream.lastError = e.message; return; }
+    try { size = fs.statSync(STREAM_FILE).size; } catch { stream.lastError = 'file stream unavailable'; return; }
     if (size < pos) pos = 0;                 // file rotated/truncated
     if (size === pos) return;
     const b = Buffer.alloc(size - pos);
@@ -151,7 +180,15 @@ function enforceCap() {
   if (q.pendingCount.get().n <= BUFFER_CAP) return;
   // Security summaries are never dropped; the oldest metric-only batch goes first, with an audit row.
   const victim = q.oldestPending.all().find(r => !r.body.includes('"kind":"security_summary"'));
-  if (victim) { q.dropPending.run(victim.seq); audit(victim.payload_id, 'dropped_buffer_cap', `cap ${BUFFER_CAP}`); }
+  if (victim) {
+    db.exec('begin');
+    try {
+      q.dropPending.run(victim.seq);
+      q.incrementDropped.run();
+      audit(victim.payload_id, 'dropped_buffer_cap', `cap ${BUFFER_CAP}`);
+      db.exec('commit');
+    } catch (e) { db.exec('rollback'); throw e; }
+  }
 }
 
 // ---- 8. Sender: strict seq order, ack only on receipt, backoff 1s->5s, retry forever ----------------
@@ -188,10 +225,24 @@ async function sender() {
     try {
       const r = await post('/v1/ingest', row.body, { 'x-payload-digest': passport.sha256 });
       if (r.status === 200 && r.json?.payload_id === row.payload_id) {
-        const match = r.json.received_digest === passport.sha256 ? 1 : 0;
-        q.ack.run(new Date().toISOString(), JSON.stringify(r.json), match, row.seq);
-        audit(row.payload_id, r.json.status === 'duplicate' ? 'acked_duplicate' : 'acked', `receipt digest ${match ? 'matches' : 'MISMATCH'}`);
+        const duplicate = r.json.status === 'duplicate';
+        const match = r.json.received_digest === passport.sha256 && (!duplicate || r.json.stored_digest === passport.sha256);
+        if (!match || !['stored', 'duplicate'].includes(r.json.status)) {
+          const reason = !match ? 'receipt digest mismatch' : 'unrecognized receipt status';
+          markDown(reason);
+          audit(row.payload_id, 'receipt_verification_failed', reason);
+          await sleep(backoff);
+          backoff = Math.min(backoff * 2, 5000);
+          continue;
+        }
+        q.ack.run(new Date().toISOString(), JSON.stringify(r.json), 1, row.seq);
+        audit(row.payload_id, duplicate ? 'acked_duplicate' : 'acked', 'receipt digest matches');
         markUp(); backoff = 1000;
+        continue;
+      }
+      if (r.status === 409) {
+        q.reject.run(JSON.stringify(r.json), row.seq);
+        audit(row.payload_id, 'payload_id_conflict', `HTTP 409 ${JSON.stringify(r.json?.error ?? 'payload ID conflict')}`);
         continue;
       }
       if ([400, 413, 422].includes(r.status)) {   // will never succeed: park it, audit, move on
@@ -238,7 +289,7 @@ const rowOut = r => ({
 function state(rawFilter) {
   return {
     collector: {
-      name: NAME, collector_id: COLLECTOR_ID, version: VERSION, region: cfg.region, saas_url: SAAS_URL, tz: cfg.tz,
+      name: NAME, collector_id: COLLECTOR_ID, version: VERSION, region: cfg.region, saas_url: safeSaasOrigin, tz: cfg.tz,
       config_hash: CONFIG_HASH, policy_version: P.POLICY_VERSION, window_ms: WINDOW_MS, raw_ttl_min: RAW_TTL_MIN,
     },
     stream, saas, buffered: q.pendingCount.get().n, counts: q.counts.get(),
@@ -251,7 +302,7 @@ function state(rawFilter) {
 function delivery() {
   const rows = q.allOutbox.all();
   const by = s => rows.filter(r => r.status === s).map(r => r.payload_id);
-  return { collector_id: COLLECTOR_ID, created: rows.map(r => r.payload_id), acked: by('acked'), pending: by('pending'), rejected: by('rejected') };
+  return { collector_id: COLLECTOR_ID, created: rows.map(r => r.payload_id), acked: by('acked'), pending: by('pending'), rejected: by('rejected'), dropped: q.dropped.all().map(r => r.payload_id), dropped_total: q.droppedCount.get().n };
 }
 function injectSim(name) {
   return new Promise((resolve, reject) => {
@@ -289,7 +340,7 @@ http.createServer(async (req, res) => {
   } catch (e) { send(500, { error: e.message }); }
 }).listen(UI_PORT, '127.0.0.1', () => {
   console.log(`[collector ${NAME}] ${COLLECTOR_ID} region=${cfg.region} stream=${STREAM_KIND} (${stream.source})`);
-  console.log(`[collector ${NAME}] local UI  http://127.0.0.1:${UI_PORT}   egress -> ${SAAS_URL}`);
+  console.log(`[collector ${NAME}] local UI  http://127.0.0.1:${UI_PORT}   egress -> ${safeSaasOrigin}`);
 });
 
 // ---- Local retention ---------------------------------------------------------------------------------

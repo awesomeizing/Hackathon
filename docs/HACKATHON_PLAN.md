@@ -100,6 +100,8 @@ Changes after the freeze go here as `C1…` with reason (organizer constraint, b
 | C1 | 20 Nov 15:45 | Security defect | Unknown-field errors echoed the field *name* into SaaS audit (a crafted key could carry a secret). Names no longer echoed. |
 | C2 | 20 Nov 15:50 | Correctness | Cross-source "network + service" correlation dropped: without a service map it merges unrelated injections (false alarms). Same-source correlation only; stated as a limitation. |
 | C3 | 20 Nov 15:56 | Correctness defect | A hard kill lost up to one 2 s aggregation window from egress. Collector now re-aggregates unsent raw rows on start (verified: 47 rows recovered). |
+| C4 | 20 Nov 20:25 | Security/correctness defect | Ignored runtime files could still sync with the OneDrive source folder. Credentials, certificates, raw data, and databases now default to an OS-local state directory (`SP_STATE_DIR` override); POSIX state permissions are restricted, the SaaS listener defaults to loopback, and organizer stream URLs/credentials are hidden from UI/logs. Authenticated remote streams require HTTPS. Reused payload IDs with changed content now return conflict, and delivery verification fails for pending, rejected, or dropped batches. |
+| C5 | 20 Nov ~22:00 | Correctness defects | (a) A second `npm run collector` with the same name wrote to the shared collector DB before failing on EADDRINUSE; the running collector hit `database is locked` (node:sqlite busy timeout 0) and exited. Collector and SaaS DBs now wait up to 5 s for a lock. Still run one collector per name. (b) `npm run verify` printed PASS with 0 payloads created; it now fails with "no payloads created yet". (c) With the SaaS down, scenario tools printed a blank line (empty AggregateError message); they now print `FAIL: ECONNREFUSED ::1:8443, ECONNREFUSED 127.0.0.1:8443`. |
 
 ## 8. Evening handoff (written 20 Nov ~16:00 IST)
 
@@ -123,5 +125,13 @@ fix findings, small dashboard polish. No schema or scope changes.
 **Decisions waiting for 19:30:**
 1. Organizer stream URL/format/auth (A1). Without it, Phase 3 timing evidence stays "simulated".
 2. Team member names → replace R1–R4 (A5); confirm deadline and judge checkpoint times (A2, A3).
-3. Optional: import `.local/certs/ca.crt` into the demo browser to show the dashboard over HTTPS, too
+3. Optional: import `certs/ca.crt` from the local state directory into the demo browser to show the dashboard over HTTPS, too
    (collector ingest already uses TLS; the dashboard is also served on loopback HTTP).
+
+## 9. Continuation status (20 Nov 20:25 IST)
+
+Security/correctness review complete for the local prototype. C4 is implemented and documented. Existing checks
+pass; the collector and SaaS have not been relaunched against the new OS-local state directory, and no organizer
+stream has been connected because its URL, schema/format, credentials, and scenario tools are still unprovided.
+The 24-hour deadline and judge checkpoint schedule also remain unconfirmed. Treat all existing performance figures
+as simulated until the live organizer feed is connected and measured.

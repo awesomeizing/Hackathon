@@ -4,18 +4,18 @@
 //   replay    — resend the last acked payload (duplicate) + send a late payload (out-of-order)
 //   residency — present an eu-west tenant's credential to the ap-south ingest (expect 421)
 const fs = require('node:fs');
-const path = require('node:path');
 const http = require('node:http');
 const https = require('node:https');
 const crypto = require('node:crypto');
 const P = require('../shared/policy');
+const { statePath } = require('../shared/state-dir');
 
-const ROOT = path.join(__dirname, '..');
 const NAME = process.env.COLLECTOR || 'acme-site-1';
-const cfg = n => JSON.parse(fs.readFileSync(path.join(ROOT, '.local', 'collectors', `${n}.json`), 'utf8'));
-const INJECTED = path.join(ROOT, '.local', 'replay-injected-ids.json');   // so verify can tell tool traffic apart
+if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(NAME)) throw new Error('COLLECTOR must be 1–64 letters, numbers, underscores, or hyphens');
+const cfg = n => JSON.parse(fs.readFileSync(statePath('collectors', `${n}.json`), 'utf8'));
+const INJECTED = statePath('replay-injected-ids.json');   // so verify can tell tool traffic apart
 const readInjected = () => { try { return JSON.parse(fs.readFileSync(INJECTED, 'utf8')); } catch { return []; } };
-const agent = new https.Agent({ ca: fs.readFileSync(path.join(ROOT, '.local', 'certs', 'ca.crt')) });
+const agent = new https.Agent({ ca: fs.readFileSync(statePath('certs', 'ca.crt')) });
 
 function request(url, { method = 'GET', body, headers = {} } = {}) {
   return new Promise((resolve, reject) => {
@@ -31,6 +31,7 @@ async function verify() {
   const c = cfg(NAME);
   const local = (await request(`http://127.0.0.1:${c.ui_port}/api/delivery`)).json;
   const remote = (await request(new URL('/v1/delivery/ids', c.saas_url).href, { headers: { authorization: `Bearer ${c.key}` } })).json;
+  const droppedCount = local.dropped_total ?? local.dropped?.length ?? 0;   // tolerate a collector process started before the API gained this field
   const rec = new Set(remote.received);
   const missing = local.acked.filter(id => !rec.has(id));
   const injected = new Set(readInjected());
@@ -41,9 +42,13 @@ async function verify() {
   console.log(`  created ${local.created.length} · acked ${local.acked.length} · still buffered ${local.pending.length} · rejected ${local.rejected.length}`);
   console.log(`SaaS received ${remote.received.length} unique payloads · duplicate deliveries ignored ${remote.duplicate_deliveries_ignored}`);
   console.log(`  acked but missing at SaaS: ${missing.length}   received but never created: ${unknown.length}   duplicates stored: ${dupStored}`);
-  const ok = !missing.length && !unknown.length && !dupStored;
+  // An empty comparison proves nothing, so it must not print PASS (C5b).
+  const ok = local.created.length > 0 && !missing.length && !unknown.length && !dupStored && !local.pending.length && !local.rejected.length && !droppedCount;
+  if (!local.created.length) console.log('no payloads created yet; nothing to verify. Wait for the collector to deliver, then run again.');
   console.log(ok ? 'PASS — zero loss, zero duplicates' : 'FAIL');
   if (local.pending.length) console.log(`note: ${local.pending.length} payload(s) still buffered; run again after the backlog drains.`);
+  if (local.rejected.length) console.log(`rejected payloads: ${local.rejected.length}; inspect the collector egress/audit panel before reporting zero loss.`);
+  if (droppedCount) console.log(`dropped at buffer cap: ${droppedCount}; these payloads require investigation before reporting zero loss.`);
   process.exitCode = ok ? 0 : 1;
 }
 
@@ -82,4 +87,5 @@ async function residency() {
 
 const cmd = { verify, replay, residency }[process.argv[2]];
 if (!cmd) { console.log('usage: node scripts/scenario.js verify|replay|residency'); process.exit(2); }
-cmd().catch(e => { console.error(e.message); process.exit(1); });
+// localhost resolves to ::1 and 127.0.0.1, so a refused connect is an AggregateError with an empty message (C5c).
+cmd().catch(e => { console.error(`FAIL: ${e.message || e.code || e.errors?.map(x => `${x.code} ${x.address}:${x.port}`).join(', ') || e}`); process.exit(1); });

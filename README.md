@@ -11,14 +11,18 @@ Docs: [plan](docs/HACKATHON_PLAN.md) · [architecture](docs/ARCHITECTURE.md) · 
 ## Run (Node ≥ 22.13, no npm install needed)
 
 ```bash
-npm run setup          # once: demo CA, TLS cert, tenants, collector keys → .local/ (git-ignored)
+npm run setup          # once: demo CA, TLS cert, tenants, collector keys → OS-local state directory
 npm run sim            # terminal 1: SIMULATED stream (only until the organizer stream is plugged in)
 npm run saas           # terminal 2: https://localhost:8443 (TLS ingest)  ·  dashboard http://127.0.0.1:8080
 npm run collector      # terminal 3: local UI http://127.0.0.1:7100 (raw view + egress proof panel)
-npm test               # 12 tests: allow-list, secret containment, dedup, isolation, correlation, remediation
+npm test               # 14 tests: allow-list, secret containment, dedup, isolation, correlation, remediation, state paths
 ```
 
-Dashboard login: a viewer token from `.local/viewer-tokens.json` (`acme` has data; `initech` proves isolation).
+On Windows, the default state directory is `%LOCALAPPDATA%\SignalPassport\CICADA`; on Linux/macOS it is
+`$XDG_STATE_HOME/signal-passport/cicada` or `~/.local/state/signal-passport/cicada`. Set `SP_STATE_DIR` to override it.
+Setup prints the exact directory. It holds credentials, certificates, raw local telemetry, and SQLite databases;
+keep any override on a disk location that is not cloud-synced. Dashboard viewer tokens are in `viewer-tokens.json`
+inside that directory (`acme` has data; `initech` proves isolation).
 
 ### Organizer stream
 ```bash
@@ -27,7 +31,9 @@ STREAM_FILE=<path> STREAM_KIND=organizer npm run collector                     #
 STREAM_MAPPING=<mapping.json> …                                               # if their field names differ
 ```
 Field mapping defaults are in `collector/pipeline.js` (`DEFAULT_MAPPING`). Plain-text syslog lines are accepted; sshd
-"Failed password" lines are recognised as failed logins. Without `STREAM_KIND=organizer` everything is labelled *simulated*.
+"Failed password" lines are recognised as failed logins. For an authenticated stream, use `STREAM_BEARER_TOKEN` or
+`STREAM_AUTH_HEADER_NAME` plus `STREAM_AUTH_HEADER_VALUE`; authenticated remote streams must use HTTPS. Credentials
+must not be embedded in `STREAM_URL`. Without `STREAM_KIND=organizer` everything is labelled *simulated*.
 
 ### Scenario tools
 `npm run verify` (sent vs received IDs) · `npm run replay` (duplicate + late payload) · `npm run residency` (eu-west tenant → 421).
