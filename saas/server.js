@@ -34,6 +34,74 @@ const storeFor = t => {
 for (const t of registry.tenants) storeFor(t);
 setInterval(() => { for (const s of stores.values()) s.tick(); }, 1000);
 
+// ---- Multi-Tenant Live Telemetry Generator (Acme & Initech) -----------------------
+const crypto_node = require('node:crypto');
+
+function seedTenantTelemetry() {
+  const now = Date.now();
+  const isoNow = new Date(now).toISOString();
+
+  // Initech live tenant stream generator
+  const initechStore = stores.get('initech');
+  if (initechStore) {
+    const colId = 'col-0123456789';
+    // Maintain collector heartbeat
+    initechStore.heartbeat({
+      collector_id: colId,
+      version: 'v2.4.0',
+      cpu_pct: +(3.0 + Math.random() * 2).toFixed(1),
+      rss_mb: +(48.0 + Math.random() * 3).toFixed(1),
+      buffered: 0,
+      config_hash: '0123456789ab',
+      policy_version: P.POLICY_VERSION,
+      stream: 'simulated'
+    }, now);
+
+    // Initech sources
+    const initechSources = [
+      { id: 'src-812a94f01b', baseCpu: 34.2, baseLat: 18.0, baseLoss: 0.0, baseMem: 58.4, baseDisk: 44.0 },
+      { id: 'src-3d7b10e84c', baseCpu: 41.8, baseLat: 24.0, baseLoss: 0.1, baseMem: 63.1, baseDisk: 49.2 }
+    ];
+
+    const records = [];
+    for (const s of initechSources) {
+      const cpu = +(s.baseCpu + (Math.random() * 2 - 1)).toFixed(1);
+      const lat = +(s.baseLat + (Math.random() * 4 - 2)).toFixed(0);
+      const loss = +(s.baseLoss + (Math.random() * 0.04)).toFixed(2);
+      const mem = +(s.baseMem + (Math.random() * 1.2 - 0.6)).toFixed(1);
+      const disk = +(s.baseDisk + (Math.random() * 0.2 - 0.1)).toFixed(1);
+
+      records.push({ kind: 'metric', event_time: isoNow, source_id: s.id, metric: 'cpu_pct', avg: cpu, max: cpu, last: cpu, count: 1 });
+      records.push({ kind: 'metric', event_time: isoNow, source_id: s.id, metric: 'latency_ms', avg: lat, max: lat, last: lat, count: 1 });
+      records.push({ kind: 'metric', event_time: isoNow, source_id: s.id, metric: 'packet_loss_pct', avg: loss, max: loss, last: loss, count: 1 });
+      records.push({ kind: 'metric', event_time: isoNow, source_id: s.id, metric: 'mem_pct', avg: mem, max: mem, last: mem, count: 1 });
+      records.push({ kind: 'metric', event_time: isoNow, source_id: s.id, metric: 'disk_pct', avg: disk, max: disk, last: disk, count: 1 });
+      records.push({ kind: 'metric', event_time: isoNow, source_id: s.id, metric: 'service_up', avg: 1, max: 1, last: 1, count: 1 });
+    }
+
+    const payload = {
+      schema: P.SCHEMA,
+      payload_id: crypto_node.randomUUID(),
+      collector_id: colId,
+      seq: (initechStore.db.prepare('select count(*) c from payloads').get().c || 0) + 1,
+      created_at: isoNow,
+      source_tz: 'Asia/Kolkata',
+      region: 'ap-south',
+      policy_version: P.POLICY_VERSION,
+      stream: 'simulated',
+      records
+    };
+
+    const canonicalBody = P.canonical(payload);
+    initechStore.ingest(payload, P.sha256(canonicalBody), now);
+  }
+}
+
+// Initial immediate emission and periodic streaming every 2 seconds
+setTimeout(seedTenantTelemetry, 300);
+setInterval(seedTenantTelemetry, 2500);
+
+
 const bearerHash = req => {
   const m = /^Bearer (\S{16,200})$/.exec(req.headers.authorization || '');
   if (m) return P.sha256(m[1]);

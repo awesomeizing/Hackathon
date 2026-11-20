@@ -21,6 +21,8 @@ import SlaMetricsPanel from './SlaMetricsPanel';
 import TelemetrySwitcher from './TelemetrySwitcher';
 import TumblerPassword from './TumblerPassword';
 import ArchitectureDrawer from './ArchitectureDrawer';
+import AnimatedBeamTopology from './AnimatedBeam';
+import FloatingDock from './FloatingDock';
 
 export default function CommandCenter({
   activeTenant = 'acme',
@@ -63,6 +65,16 @@ export default function CommandCenter({
       if (res.ok) {
         const data = await res.json();
         setOverview(data);
+      } else if (res.status === 421) {
+        // Residency misdirected error
+        const errData = await res.json().catch(() => ({}));
+        setOverview((prev) => ({
+          ...prev,
+          fleet_state: 'Poor',
+          sources: [],
+          collectors: [],
+          residency_violation: errData.error || 'HTTP 421 Misdirected Request: Tenant homed in eu-west, ingest is ap-south',
+        }));
       }
     } catch {}
 
@@ -133,6 +145,10 @@ export default function CommandCenter({
     await fetchData();
   };
 
+  const handleRunResidency = async () => {
+    handleSwitchTenantRequest('globex', 'Globex EU (eu-west-1) [421 Demo]', '7102');
+  };
+
   const handleApproveRemediation = async (incidentId) => {
     const res = await fetch(`/api/incidents/${incidentId}/approve`, {
       method: 'POST',
@@ -171,7 +187,7 @@ export default function CommandCenter({
   };
 
   return (
-    <div id="command-center" className="min-h-screen py-24 px-4 sm:px-6 max-w-7xl mx-auto">
+    <div id="command-center" className="min-h-screen py-24 px-4 sm:px-6 max-w-7xl mx-auto pb-32">
       {/* Architecture & Limitations Drawer */}
       <ArchitectureDrawer isOpen={architectureOpen} onClose={() => setArchitectureOpen(false)} />
 
@@ -193,7 +209,7 @@ export default function CommandCenter({
       )}
 
       {/* Command Center Top Navigation Bar */}
-      <div className="rounded-3xl bg-[#111114] border border-white/[0.08] p-6 mb-8 shadow-2xl flex flex-wrap items-center justify-between gap-6">
+      <div className="rounded-3xl bg-[#090c16]/90 border border-white/[0.08] p-6 mb-6 shadow-2xl flex flex-wrap items-center justify-between gap-6 backdrop-blur-xl">
         <div>
           <div className="flex items-center gap-3">
             <h2 className="text-3xl font-serif text-white tracking-tight">Console.</h2>
@@ -271,6 +287,9 @@ export default function CommandCenter({
         </div>
       </div>
 
+      {/* 21st.dev Animated Beam Topology Bar */}
+      <AnimatedBeamTopology saasLinkCut={saasLinkCut} bufferedCount={collectorState.buffered || 0} />
+
       {/* Navigation Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-white/[0.08] font-mono text-xs">
         <button
@@ -323,7 +342,7 @@ export default function CommandCenter({
           }`}
         >
           <FileCheck className="w-3.5 h-3.5" />
-          <span>Passport Ledger</span>
+          <span>Egress Proof</span>
         </button>
 
         <button
@@ -335,10 +354,10 @@ export default function CommandCenter({
           }`}
         >
           <AlertTriangle className="w-3.5 h-3.5" />
-          <span>Safe Remediation</span>
-          {overview.incidents?.filter((i) => i.status === 'open').length > 0 && (
+          <span>Remediation Gate</span>
+          {overview.incidents?.length > 0 && (
             <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-black font-bold text-[10px]">
-              {overview.incidents.filter((i) => i.status === 'open').length}
+              {overview.incidents.length}
             </span>
           )}
         </button>
@@ -352,7 +371,7 @@ export default function CommandCenter({
           }`}
         >
           <Zap className="w-3.5 h-3.5" />
-          <span>SLAs &amp; Scenarios</span>
+          <span>SLA Metrics</span>
         </button>
 
         <button
@@ -364,17 +383,18 @@ export default function CommandCenter({
           }`}
         >
           <Radio className="w-3.5 h-3.5" />
-          <span>Stream Switcher</span>
+          <span>Stream Source</span>
         </button>
       </div>
 
-      {/* Tab Contents */}
-      <div>
+      {/* Main Tab Content Panes */}
+      <div className="space-y-6">
         {activeTab === 'health' && (
           <HealthMatrix
             sources={overview.sources || []}
             collectors={overview.collectors || []}
             fleetState={overview.fleet_state || 'Good'}
+            timing={overview.timing || {}}
           />
         )}
 
@@ -435,6 +455,14 @@ export default function CommandCenter({
           />
         )}
       </div>
+
+      {/* 21st.dev Floating Action Dock for Scenarios */}
+      <FloatingDock
+        onInjectScenario={handleScenarioInject}
+        saasLinkCut={saasLinkCut}
+        onToggleSaasLink={handleToggleSaasLink}
+        onRunResidency={handleRunResidency}
+      />
     </div>
   );
 }
