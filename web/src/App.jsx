@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import LiquidSculptureHero from './components/LiquidSculptureHero';
+import CuratedAssemblages from './components/CuratedAssemblages';
+import ArchitectureOfTelemetry from './components/ArchitectureOfTelemetry';
 import CryptographicProofs from './components/CryptographicProofs';
 import GlyphCurtainHero from './components/GlyphCurtainHero';
+import ClaritySection from './components/ClaritySection';
 import CommandCenter from './components/CommandCenter';
-import { Shield, Lock, Terminal, Activity } from 'lucide-react';
+import { Shield } from 'lucide-react';
 
 export default function App() {
   const [activeTenant, setActiveTenant] = useState('acme');
@@ -36,32 +39,31 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#060913] text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
-      {/* Top Cyber Command Bar */}
-      <header className="sticky top-0 z-40 bg-[#060913]/80 backdrop-blur-xl border-b border-surface-border">
+    <div className="min-h-screen bg-[#08080a] text-neutral-100 flex flex-col font-sans selection:bg-white/20 selection:text-white">
+      {/* Top Editorial Bar */}
+      <header className="sticky top-0 z-40 bg-[#08080a]/90 backdrop-blur-xl border-b border-white/[0.08]">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-emerald-400 flex items-center justify-center font-bold text-slate-950 shadow-md shadow-cyan-500/20">
-              <Shield className="w-4 h-4" />
-            </div>
-            <span className="font-bold text-base tracking-tight text-white flex items-center gap-2">
-              VeilOps <span className="text-cyan-400 font-mono text-xs font-normal">v2.4.0</span>
+            <span className="font-serif text-xl font-bold tracking-tight text-white">
+              VeilOps.
+            </span>
+            <span className="text-neutral-500 font-mono text-[11px] font-normal border border-white/10 px-2 py-0.5 rounded-full">
+              v2.4.0
             </span>
           </div>
 
           <div className="flex items-center gap-4 text-xs font-mono">
             <button
               onClick={scrollToTrustBoundary}
-              className="text-slate-400 hover:text-cyan-300 transition-colors hidden sm:block"
+              className="text-neutral-400 hover:text-white transition-colors hidden sm:block"
             >
               Trust Boundary
             </button>
             <button
               onClick={scrollToCommandCenter}
-              className="px-3.5 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-all font-semibold flex items-center gap-1.5"
+              className="px-5 py-2 rounded-full bg-white hover:bg-neutral-200 text-black font-sans font-medium text-xs transition-all shadow-md active:scale-95"
             >
-              <Activity className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Live Console</span>
+              Console
             </button>
           </div>
         </div>
@@ -69,19 +71,28 @@ export default function App() {
 
       {/* Main Content */}
       <main className="flex-1">
-        {/* Component 1: Liquid Sculpture Hero */}
+        {/* Hero Section: Signal Architecture */}
         <LiquidSculptureHero
           onLaunchCommandCenter={scrollToCommandCenter}
           onInspectTrustBoundary={scrollToTrustBoundary}
         />
 
-        {/* Editorial Proofs Section (Inspired by Design Reference) */}
+        {/* Section 1: Curated Assemblages */}
+        <CuratedAssemblages onLaunchConsole={scrollToCommandCenter} />
+
+        {/* Section 2: The Architecture of Telemetry */}
+        <ArchitectureOfTelemetry />
+
+        {/* Section 3: The Archives */}
         <CryptographicProofs />
 
-        {/* Component 2: Glyph Curtain Hero (Trust Boundary) */}
+        {/* Section 4: Trust Boundary & Telemetry Visualizer */}
         <GlyphCurtainHero />
 
-        {/* Live Command Center & Component 3 (Tumbler Password Gate) */}
+        {/* Section 5: Clarity */}
+        <ClaritySection />
+
+        {/* Section 6: Live Command Center */}
         <CommandCenter
           activeTenant={activeTenant}
           tenantToken={tenantTokens[activeTenant] || ''}
@@ -91,14 +102,15 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-surface-border bg-surface/40 py-8 px-6 text-center text-xs font-mono text-slate-500">
+      <footer className="border-t border-white/[0.08] bg-[#08080a] py-12 px-6 text-xs font-mono text-neutral-500">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-emerald-400" />
-            <span>VeilOps &middot; CICADA 2026 Hackathon Special</span>
+            <Shield className="w-4 h-4 text-white" />
+            <span className="text-white font-medium">VeilOps</span>
+            <span>&middot; CICADA 2K26</span>
           </div>
-          <div>Your signals cross. Your secrets stay local. &middot; SHA-256 Signal Passport Certified</div>
-          <div className="text-slate-400">Node.js 24 + Zero External NPM Backend Deps</div>
+          <div>Your signals cross. Your secrets stay local. &middot; SHA-256 Signal Passport</div>
+          <div className="text-neutral-400">Node.js Zero External Dependencies</div>
         </div>
       </footer>
     </div>

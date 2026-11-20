@@ -8,28 +8,25 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#060913',
+        background: '#08080a',
         surface: {
-          DEFAULT: '#0b1120',
-          elevated: '#111a30',
-          border: '#1e293b',
+          DEFAULT: '#0f0f12',
+          elevated: '#17171c',
+          card: '#121216',
+          border: 'rgba(255, 255, 255, 0.08)',
         },
         accent: {
-          cyan: '#06b6d4',
-          emerald: '#10b981',
-          amber: '#f59e0b',
-          crimson: '#ef4444',
-          purple: '#8b5cf6',
+          cyan: '#38bdf8',
+          emerald: '#34d399',
+          amber: '#fbbf24',
+          crimson: '#f87171',
+          purple: '#a78bfa',
         },
       },
       fontFamily: {
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-      },
-      animation: {
-        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'spin-slow': 'spin 12s linear infinite',
-        'matrix-rain': 'matrix 20s linear infinite',
+        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['"Fira Code"', 'JetBrains Mono', 'monospace'],
       },
     },
   },

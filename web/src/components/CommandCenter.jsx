@@ -8,10 +8,7 @@ import {
   Zap,
   Radio,
   FileCheck,
-  Server,
   RefreshCw,
-  LogOut,
-  Key,
   Info,
 } from 'lucide-react';
 import HealthMatrix from './HealthMatrix';
@@ -30,7 +27,7 @@ export default function CommandCenter({
   tenantName = 'Acme Retail (ap-south-1)',
   onSwitchTenant,
 }) {
-  const [activeTab, setActiveTab] = useState('health'); // 'health', 'firewall', 'secrets', 'egress', 'remediation', 'sla', 'stream'
+  const [activeTab, setActiveTab] = useState('health');
   const [tenantModalOpen, setTenantModalOpen] = useState(false);
   const [targetTenantToUnlock, setTargetTenantToUnlock] = useState(null);
   const [architectureOpen, setArchitectureOpen] = useState(false);
@@ -59,7 +56,6 @@ export default function CommandCenter({
   // Fetch SaaS overview & Collector state
   const fetchData = async () => {
     try {
-      // 1. SaaS Overview
       const res = await fetch('/api/overview', {
         headers: tenantToken ? { authorization: `Bearer ${tenantToken}` } : {},
       });
@@ -70,7 +66,6 @@ export default function CommandCenter({
     } catch {}
 
     try {
-      // 2. Collector State
       const colRes = await fetch('/collector-api/state?raw=all');
       if (colRes.ok) {
         const colData = await colRes.json();
@@ -79,7 +74,7 @@ export default function CommandCenter({
           setSaasLinkCut(colData.link_cut);
         }
 
-        // Post live rendered timing sample to SaaS engine for real latency measurement
+        // Send timing sample to SaaS engine for real latency measurement
         if (colData.payloads?.[0]?.payload_id) {
           fetch('/api/timing', {
             method: 'POST',
@@ -96,7 +91,6 @@ export default function CommandCenter({
     } catch {}
   };
 
-  // Poll every 1.5 seconds for live real-time updates
   useEffect(() => {
     fetchData();
     const timer = setInterval(fetchData, 1500);
@@ -161,7 +155,7 @@ export default function CommandCenter({
     setTenantModalOpen(true);
   };
 
-  const handleTenantUnlocked = (code) => {
+  const handleTenantUnlocked = () => {
     if (targetTenantToUnlock && onSwitchTenant) {
       onSwitchTenant(targetTenantToUnlock.id);
     }
@@ -170,7 +164,7 @@ export default function CommandCenter({
   };
 
   return (
-    <div id="command-center" className="min-h-screen py-10 px-4 sm:px-6 max-w-7xl mx-auto">
+    <div id="command-center" className="min-h-screen py-24 px-4 sm:px-6 max-w-7xl mx-auto">
       {/* Architecture & Limitations Drawer */}
       <ArchitectureDrawer isOpen={architectureOpen} onClose={() => setArchitectureOpen(false)} />
 
@@ -181,8 +175,8 @@ export default function CommandCenter({
             <TumblerPassword
               targetCode={targetTenantToUnlock.clearanceCode || '7100'}
               title={`Switch Vault: ${targetTenantToUnlock.name}`}
-              description="Zero-trust cryptographic isolation. Enter tenant vault PIN to verify boundary clearance."
-              actionLabel="Unlock & Switch Tenant"
+              description="Zero-trust isolation check. Align tumbler pins to verify boundary clearance."
+              actionLabel="Unlock & Switch"
               onUnlock={handleTenantUnlocked}
               onCancel={() => setTenantModalOpen(false)}
               mode="tenant"
@@ -191,102 +185,94 @@ export default function CommandCenter({
         </div>
       )}
 
-      {/* Command Center Top Navigation Bar - Editorial Style */}
-      <div className="rounded-2xl bg-surface-elevated/90 border border-surface-border p-4 sm:p-5 mb-8 shadow-2xl backdrop-blur-xl flex flex-wrap items-center justify-between gap-4">
-        {/* Left Branding */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-            <Shield className="w-5 h-5 text-slate-950 font-bold" />
+      {/* Command Center Top Navigation Bar */}
+      <div className="rounded-3xl bg-[#111114] border border-white/[0.08] p-6 mb-8 shadow-2xl flex flex-wrap items-center justify-between gap-6">
+        <div>
+          <div className="flex items-center gap-3">
+            <h2 className="text-3xl font-serif text-white tracking-tight">Console.</h2>
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 font-mono text-[10px]">
+              LIVE
+            </span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-serif font-bold text-white tracking-tight">VeilOps Console.</h2>
-              <span className="px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 font-mono text-[10px] border border-cyan-500/30">
-                LIVE STREAM
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 font-mono">
-              Tenant: <span className="text-emerald-400 font-semibold">{tenantName}</span> &middot; Region:{' '}
-              <span className="text-cyan-300">ap-south-1</span>
-            </p>
-          </div>
+          <p className="text-xs text-neutral-400 font-mono mt-1">
+            Tenant: <span className="text-white font-medium">{tenantName}</span> &middot; Region: ap-south-1
+          </p>
         </div>
 
         {/* Right Tenant Switcher & Architecture Drawer */}
-        <div className="flex items-center gap-2.5 font-mono text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
           <button
             onClick={() => handleSwitchTenantRequest('acme', 'Acme Retail (ap-south-1)', '7100')}
-            className={`px-3 py-1.5 rounded-lg border transition-all ${
+            className={`px-4 py-2 rounded-full transition-all ${
               activeTenant === 'acme'
-                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 font-bold'
-                : 'bg-surface hover:bg-slate-800 border-slate-700 text-slate-400'
+                ? 'bg-white text-black font-semibold shadow-md'
+                : 'bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 border border-white/[0.08]'
             }`}
           >
-            Tenant-Alpha (7100)
+            Acme (7100)
           </button>
 
           <button
             onClick={() => handleSwitchTenantRequest('initech', 'Initech Bank (ap-south-1)', '7101')}
-            className={`px-3 py-1.5 rounded-lg border transition-all ${
+            className={`px-4 py-2 rounded-full transition-all ${
               activeTenant === 'initech'
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 font-bold'
-                : 'bg-surface hover:bg-slate-800 border-slate-700 text-slate-400'
+                ? 'bg-white text-black font-semibold shadow-md'
+                : 'bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 border border-white/[0.08]'
             }`}
           >
-            Tenant-Beta (7101)
+            Initech (7101)
           </button>
 
           <button
             onClick={() => handleSwitchTenantRequest('globex', 'Globex EU (eu-west-1) [421 Demo]', '7102')}
-            className={`px-3 py-1.5 rounded-lg border transition-all ${
+            className={`px-4 py-2 rounded-full transition-all ${
               activeTenant === 'globex'
-                ? 'bg-purple-500/20 text-purple-300 border-purple-500/50 font-bold'
-                : 'bg-surface hover:bg-slate-800 border-slate-700 text-slate-400'
+                ? 'bg-white text-black font-semibold shadow-md'
+                : 'bg-white/[0.04] hover:bg-white/[0.08] text-neutral-400 border border-white/[0.08]'
             }`}
-            title="Demonstrate 421 Residency Rejection"
+            title="Demonstrate HTTP 421 Residency Rejection"
           >
             Globex EU (421)
           </button>
 
           <button
             onClick={() => setArchitectureOpen(true)}
-            className="px-3 py-1.5 rounded-lg bg-surface hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-cyan-400 transition-colors flex items-center gap-1.5"
-            title="View Architecture & Honest Limitations"
+            className="p-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-neutral-400 hover:text-white transition-colors"
+            title="View Architecture & Limitations"
           >
-            <Info className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">Architecture</span>
+            <Info className="w-4 h-4" />
           </button>
 
           <button
             onClick={handleManualRefresh}
-            className="p-2 rounded-lg bg-surface hover:bg-slate-800 border border-slate-700 text-slate-300 transition-colors"
+            className="p-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-neutral-400 hover:text-white transition-colors"
             title="Refresh State"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-cyan-400' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-white' : ''}`} />
           </button>
         </div>
       </div>
 
-      {/* Navigation Tabs - Editorial Low-Text Bar */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 border-b border-surface-border font-mono text-xs">
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-white/[0.08] font-mono text-xs">
         <button
           onClick={() => setActiveTab('health')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
             activeTab === 'health'
-              ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 shadow-md shadow-cyan-500/20'
-              : 'bg-surface hover:bg-surface-elevated text-slate-400 hover:text-white border border-slate-800'
+              ? 'bg-white text-black font-semibold shadow-md'
+              : 'bg-white/[0.03] hover:bg-white/[0.07] text-neutral-400 hover:text-white border border-white/[0.08]'
           }`}
         >
           <Activity className="w-3.5 h-3.5" />
-          <span>Fleet Health Matrix</span>
+          <span>Fleet Health</span>
         </button>
 
         <button
           onClick={() => setActiveTab('firewall')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
             activeTab === 'firewall'
-              ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 shadow-md shadow-cyan-500/20'
-              : 'bg-surface hover:bg-surface-elevated text-slate-400 hover:text-white border border-slate-800'
+              ? 'bg-white text-black font-semibold shadow-md'
+              : 'bg-white/[0.03] hover:bg-white/[0.07] text-neutral-400 hover:text-white border border-white/[0.08]'
           }`}
         >
           <Shield className="w-3.5 h-3.5" />
@@ -295,10 +281,10 @@ export default function CommandCenter({
 
         <button
           onClick={() => setActiveTab('secrets')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
             activeTab === 'secrets'
-              ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 shadow-md shadow-cyan-500/20'
-              : 'bg-surface hover:bg-surface-elevated text-slate-400 hover:text-white border border-slate-800'
+              ? 'bg-white text-black font-semibold shadow-md'
+              : 'bg-white/[0.03] hover:bg-white/[0.07] text-neutral-400 hover:text-white border border-white/[0.08]'
           }`}
         >
           <Lock className="w-3.5 h-3.5" />
@@ -312,28 +298,28 @@ export default function CommandCenter({
 
         <button
           onClick={() => setActiveTab('egress')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
             activeTab === 'egress'
-              ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 shadow-md shadow-cyan-500/20'
-              : 'bg-surface hover:bg-surface-elevated text-slate-400 hover:text-white border border-slate-800'
+              ? 'bg-white text-black font-semibold shadow-md'
+              : 'bg-white/[0.03] hover:bg-white/[0.07] text-neutral-400 hover:text-white border border-white/[0.08]'
           }`}
         >
           <FileCheck className="w-3.5 h-3.5" />
-          <span>Signal Passport Ledger</span>
+          <span>Passport Ledger</span>
         </button>
 
         <button
           onClick={() => setActiveTab('remediation')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
             activeTab === 'remediation'
-              ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 shadow-md shadow-cyan-500/20'
-              : 'bg-surface hover:bg-surface-elevated text-slate-400 hover:text-white border border-slate-800'
+              ? 'bg-white text-black font-semibold shadow-md'
+              : 'bg-white/[0.03] hover:bg-white/[0.07] text-neutral-400 hover:text-white border border-white/[0.08]'
           }`}
         >
           <AlertTriangle className="w-3.5 h-3.5" />
           <span>Safe Remediation</span>
           {overview.incidents?.filter((i) => i.status === 'open').length > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-bold text-[10px]">
+            <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-black font-bold text-[10px]">
               {overview.incidents.filter((i) => i.status === 'open').length}
             </span>
           )}
@@ -341,26 +327,26 @@ export default function CommandCenter({
 
         <button
           onClick={() => setActiveTab('sla')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
             activeTab === 'sla'
-              ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 shadow-md shadow-cyan-500/20'
-              : 'bg-surface hover:bg-surface-elevated text-slate-400 hover:text-white border border-slate-800'
+              ? 'bg-white text-black font-semibold shadow-md'
+              : 'bg-white/[0.03] hover:bg-white/[0.07] text-neutral-400 hover:text-white border border-white/[0.08]'
           }`}
         >
           <Zap className="w-3.5 h-3.5" />
-          <span>SLAs &amp; Live Scenarios</span>
+          <span>SLAs &amp; Scenarios</span>
         </button>
 
         <button
           onClick={() => setActiveTab('stream')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${
             activeTab === 'stream'
-              ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 shadow-md shadow-cyan-500/20'
-              : 'bg-surface hover:bg-surface-elevated text-slate-400 hover:text-white border border-slate-800'
+              ? 'bg-white text-black font-semibold shadow-md'
+              : 'bg-white/[0.03] hover:bg-white/[0.07] text-neutral-400 hover:text-white border border-white/[0.08]'
           }`}
         >
           <Radio className="w-3.5 h-3.5" />
-          <span>Stream Source Switcher</span>
+          <span>Stream Switcher</span>
         </button>
       </div>
 
