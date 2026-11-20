@@ -4,7 +4,7 @@
  * Starts Tier 1 Local Collector + Tier 2 Multi-Tenant SaaS + Telemetry Simulator.
  */
 
-const { spawn } = require('node:child_process');
+const { spawn, execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -20,7 +20,11 @@ console.log('===================================================================
 const certPath = path.join(ROOT, env.SP_STATE_DIR, 'certs', 'ca.crt');
 if (!fs.existsSync(certPath)) {
   console.log('[VeilOps] Initializing cryptographic certificates and tenant stores...');
-  require('./scripts/setup.js');
+  execFileSync(process.execPath, [path.join(ROOT, 'scripts', 'setup.js')], {
+    cwd: ROOT,
+    env,
+    stdio: 'inherit',
+  });
 }
 
 const processes = [];
