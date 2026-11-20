@@ -42,9 +42,6 @@ export default function App() {
             <span className="font-serif text-xl font-bold tracking-tight text-white">
               VeilOps.
             </span>
-            <span className="text-neutral-500 font-mono text-[11px] font-normal border border-white/10 px-2 py-0.5 rounded-full">
-              v2.4.0
-            </span>
           </div>
 
           <div className="flex items-center gap-4 text-xs font-mono">
