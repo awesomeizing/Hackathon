@@ -35,6 +35,7 @@ export default function CommandCenter({
   const [targetTenantToUnlock, setTargetTenantToUnlock] = useState(null);
   const [architectureOpen, setArchitectureOpen] = useState(false);
   const [saasLinkCut, setSaasLinkCut] = useState(false);
+  const [inspectEuRegional, setInspectEuRegional] = useState(false);
 
   // Live data states
   const [overview, setOverview] = useState({
@@ -59,7 +60,8 @@ export default function CommandCenter({
   // Fetch SaaS overview & Collector state
   const fetchData = async () => {
     try {
-      const res = await fetch('/api/overview', {
+      const url = activeTenant === 'globex' && inspectEuRegional ? '/api/overview?inspect_eu=1' : '/api/overview';
+      const res = await fetch(url, {
         headers: tenantToken ? { authorization: `Bearer ${tenantToken}` } : {},
       });
       if (res.ok) {
@@ -105,6 +107,10 @@ export default function CommandCenter({
   };
 
   useEffect(() => {
+    setInspectEuRegional(false);
+  }, [activeTenant]);
+
+  useEffect(() => {
     fetchData();
     const timer = setInterval(fetchData, 1500);
     const unsubscribe = subscribeToTenantRealtime(activeTenant, () => {
@@ -114,7 +120,7 @@ export default function CommandCenter({
       clearInterval(timer);
       unsubscribe();
     };
-  }, [tenantToken, activeTenant]);
+  }, [tenantToken, activeTenant, inspectEuRegional]);
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
@@ -387,6 +393,44 @@ export default function CommandCenter({
         </button>
       </div>
 
+      {/* Regional Residency 421 Boundary Notice */}
+      {overview.residency_violation && (
+        <div className="mb-6 p-4 rounded-2xl bg-amber-950/30 border border-amber-500/40 text-amber-200 font-mono text-xs flex flex-wrap items-center justify-between gap-3 shadow-xl backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <Shield className="w-5 h-5 text-amber-400" />
+            <div>
+              <div className="font-bold text-amber-300">REGIONAL RESIDENCY BOUNDARY ENFORCED (HTTP 421)</div>
+              <div className="text-[11px] text-neutral-400 mt-0.5">{overview.residency_violation}</div>
+            </div>
+          </div>
+          <button
+            onClick={() => setInspectEuRegional(true)}
+            className="px-4 py-2 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/60 text-amber-300 font-bold transition-all active:scale-95 flex items-center gap-2"
+          >
+            <span>Inspect EU Regional Store (eu-west-1)</span>
+          </button>
+        </div>
+      )}
+
+      {/* Regional Residency Compliant Notice */}
+      {overview.residency_status && (
+        <div className="mb-6 p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/40 text-emerald-200 font-mono text-xs flex flex-wrap items-center justify-between gap-3 shadow-xl backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <Shield className="w-5 h-5 text-emerald-400" />
+            <div>
+              <div className="font-bold text-emerald-300">REGIONAL RESIDENCY COMPLIANT &middot; ISOLATED EU VAULT</div>
+              <div className="text-[11px] text-neutral-400 mt-0.5">{overview.residency_status} &middot; Zero cross-region replication to ap-south-1</div>
+            </div>
+          </div>
+          <button
+            onClick={() => setInspectEuRegional(false)}
+            className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-neutral-200 text-[11px] transition-all"
+          >
+            Re-test 421 Boundary
+          </button>
+        </div>
+      )}
+
       {/* Main Tab Content Panes */}
       <div className="space-y-6">
         {activeTab === 'health' && (
@@ -442,6 +486,18 @@ export default function CommandCenter({
           <SlaMetricsPanel
             timings={overview.timing || {}}
             onInjectScenario={handleScenarioInject}
+            onRunVerify={async () => {
+              const res = await fetch('/api/scenario/verify', { method: 'POST' });
+              return res.json();
+            }}
+            onRunReplay={async () => {
+              const res = await fetch('/api/scenario/replay', { method: 'POST' });
+              return res.json();
+            }}
+            onRunResidency={async () => {
+              const res = await fetch('/api/scenario/residency', { method: 'POST' });
+              return res.json();
+            }}
             saasLinkCut={saasLinkCut}
             onToggleSaasLink={handleToggleSaasLink}
             bufferedCount={collectorState.buffered || 0}
