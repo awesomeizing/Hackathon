@@ -1,0 +1,1029 @@
+{
+  "run": "run-2026-11-20T1044Z",
+  "stream": "simulated",
+  "note": "Fallback simulator (scripts/sim-stream.js). NOT organizer telemetry.",
+  "started_at": "2026-11-20T10:44:06.649Z",
+  "ended_at": "2026-11-20T10:50:08.324Z",
+  "duration_s": 362,
+  "host": "single Windows laptop; sim, collector, SaaS on loopback; dashboard open in Chrome (DevTools MCP)",
+  "method": {
+    "event_to_render": "dashboard posts rendered_ms per newly displayed payload; value = rendered_ms - payload min event_time (earliest raw event in the 2 s window)",
+    "event_to_stored": "SaaS received_ms - payload min event_time",
+    "breach_to_alert": "alert created_ms - event_time of the record that crossed the threshold/baseline",
+    "offline": "detection time - last heartbeat time",
+    "backlog": "payloads received > 5 s after creation are reported separately (*_backlog)"
+  },
+  "timeline": [
+    {
+      "at": "2026-11-20T10:44:06.721Z",
+      "event": "run_begin",
+      "run": "run-2026-11-20T1044Z",
+      "stream": "simulated",
+      "git": "89c7b13",
+      "node": "v24.18.0"
+    },
+    {
+      "at": "2026-11-20T10:44:06.734Z",
+      "event": "process_start",
+      "name": "sim",
+      "pid": 5012
+    },
+    {
+      "at": "2026-11-20T10:44:07.757Z",
+      "event": "process_start",
+      "name": "saas",
+      "pid": 4292
+    },
+    {
+      "at": "2026-11-20T10:44:09.285Z",
+      "event": "process_start",
+      "name": "collector",
+      "pid": 25472
+    },
+    {
+      "at": "2026-11-20T10:45:24.305Z",
+      "event": "inject",
+      "scenario": "cpu",
+      "response": {
+        "scenario": "cpu",
+        "injected_at": "2026-11-20T10:45:24.302Z",
+        "label": "SIMULATED",
+        "host": "db-01",
+        "until": "2026-11-20T10:46:04.302Z"
+      }
+    },
+    {
+      "at": "2026-11-20T10:46:19.323Z",
+      "event": "inject",
+      "scenario": "incident",
+      "response": {
+        "scenario": "incident",
+        "injected_at": "2026-11-20T10:46:19.323Z",
+        "label": "SIMULATED",
+        "host": "web-01",
+        "until": "2026-11-20T10:46:59.323Z"
+      }
+    },
+    {
+      "at": "2026-11-20T10:47:29.334Z",
+      "event": "inject",
+      "scenario": "secret",
+      "response": {
+        "scenario": "secret",
+        "injected_at": "2026-11-20T10:47:29.333Z",
+        "label": "SIMULATED",
+        "host": "db-01",
+        "emitted": 1
+      }
+    },
+    {
+      "at": "2026-11-20T10:47:34.341Z",
+      "event": "process_hard_kill",
+      "name": "saas"
+    },
+    {
+      "at": "2026-11-20T10:48:04.373Z",
+      "event": "process_start",
+      "name": "saas",
+      "pid": 25256
+    },
+    {
+      "at": "2026-11-20T10:48:29.383Z",
+      "event": "inject",
+      "scenario": "bruteforce",
+      "response": {
+        "scenario": "bruteforce",
+        "injected_at": "2026-11-20T10:48:29.382Z",
+        "label": "SIMULATED",
+        "host": "web-01",
+        "until": "2026-11-20T10:48:49.382Z"
+      }
+    },
+    {
+      "at": "2026-11-20T10:48:59.604Z",
+      "event": "scenario_verify",
+      "output": [
+        "collector col-842356aed9",
+        "  created 143 · acked 143 · still buffered 0 · rejected 0",
+        "SaaS received 143 unique payloads · duplicate deliveries ignored 0",
+        "  acked but missing at SaaS: 0   received but never created: 0   duplicates stored: 0",
+        "PASS — zero loss, zero duplicates"
+      ]
+    },
+    {
+      "at": "2026-11-20T10:48:59.604Z",
+      "event": "process_hard_kill",
+      "name": "collector"
+    },
+    {
+      "at": "2026-11-20T10:49:44.623Z",
+      "event": "process_start",
+      "name": "collector",
+      "pid": 24200
+    },
+    {
+      "at": "2026-11-20T10:50:04.837Z",
+      "event": "scenario_verify",
+      "output": [
+        "collector col-842356aed9",
+        "  created 153 · acked 153 · still buffered 0 · rejected 0",
+        "SaaS received 153 unique payloads · duplicate deliveries ignored 0",
+        "  acked but missing at SaaS: 0   received but never created: 0   duplicates stored: 0",
+        "PASS — zero loss, zero duplicates"
+      ]
+    },
+    {
+      "at": "2026-11-20T10:50:04.891Z",
+      "event": "tls_probe_default_client",
+      "protocol": "TLSv1.3",
+      "cipher": "TLS_AES_256_GCM_SHA384",
+      "authorized": true
+    },
+    {
+      "at": "2026-11-20T10:50:04.896Z",
+      "event": "tls_probe_tls12_only_client",
+      "protocol": "TLSv1.2",
+      "cipher": "ECDHE-ECDSA-AES128-GCM-SHA256",
+      "authorized": true
+    },
+    {
+      "at": "2026-11-20T10:50:05.113Z",
+      "event": "scenario_replay",
+      "output": [
+        "1) Resent payload 1f6b9973-8d70-4955-8b8d-35e3949ac783 (network-level duplicate) → HTTP 200 status=duplicate, records stored=0",
+        "2) Sent late payload cb871aae-5d71-453e-8876-b197be6cefe3 for src-37905fb03d cpu_pct @ 2026-11-20T10:49:20.061Z → HTTP 200 status=stored, late_records=1",
+        "   The record is stored and drawn at its event time; it does not overwrite the latest value or the baseline."
+      ]
+    },
+    {
+      "at": "2026-11-20T10:50:05.300Z",
+      "event": "scenario_residency",
+      "output": [
+        "Tenant globex (home eu-west) → ingest https://localhost:8443 (ap-south): HTTP 421",
+        "  tenant data must reside in eu-west; this ingest endpoint is ap-south. Nothing was stored."
+      ]
+    }
+  ],
+  "timing": {
+    "alert": {
+      "n": 12,
+      "min": 104,
+      "p50": 1263,
+      "p95": 1434,
+      "max": 1434,
+      "first_at": "2026-11-20T10:45:25.758Z",
+      "last_at": "2026-11-20T10:48:39.756Z",
+      "streams": [
+        "simulated"
+      ]
+    },
+    "ingest": {
+      "n": 141,
+      "min": 1078,
+      "p50": 1385,
+      "p95": 1730,
+      "max": 46040,
+      "first_at": "2026-11-20T10:44:11.525Z",
+      "last_at": "2026-11-20T10:50:06.850Z",
+      "streams": [
+        "simulated"
+      ]
+    },
+    "ingest_backlog": {
+      "n": 15,
+      "min": 7459,
+      "p50": 21427,
+      "p95": 45029,
+      "max": 45029,
+      "first_at": "2026-11-20T10:48:07.558Z",
+      "last_at": "2026-11-20T10:50:05.090Z",
+      "streams": [
+        "simulated"
+      ]
+    },
+    "offline": {
+      "n": 1,
+      "min": 30380,
+      "p50": 30380,
+      "p95": 30380,
+      "max": 30380,
+      "first_at": "2026-11-20T10:49:26.156Z",
+      "last_at": "2026-11-20T10:49:26.156Z",
+      "streams": [
+        "simulated"
+      ]
+    },
+    "render": {
+      "n": 137,
+      "min": 1281,
+      "p50": 1830,
+      "p95": 2215,
+      "max": 46369,
+      "first_at": "2026-11-20T10:44:20.094Z",
+      "last_at": "2026-11-20T10:50:07.098Z",
+      "streams": [
+        "simulated"
+      ]
+    },
+    "render_backlog": {
+      "n": 15,
+      "min": 7765,
+      "p50": 21848,
+      "p95": 45042,
+      "max": 45042,
+      "first_at": "2026-11-20T10:48:08.096Z",
+      "last_at": "2026-11-20T10:50:05.104Z",
+      "streams": [
+        "simulated"
+      ]
+    }
+  },
+  "counters": {
+    "payloads": 156,
+    "records": 3447,
+    "alerts": 11,
+    "repeats_suppressed": 2,
+    "incidents": 4,
+    "late_records": 1,
+    "duplicates_ignored": 1,
+    "secrets_kept_local": 3
+  },
+  "incidents": [
+    {
+      "id": 1,
+      "opened_at": "2026-11-20T10:45:25.758Z",
+      "updated_ms": 1795171525758,
+      "status": "resolved",
+      "resolved_at": "2026-11-20T10:47:26.360Z",
+      "sources": [
+        "src-103a4aded3"
+      ],
+      "signals": [
+        "cpu_pct"
+      ],
+      "alert_count": 2,
+      "recommendation": {
+        "rule": "cpu_only",
+        "cause": "CPU deviates from its baseline with no service impact yet.",
+        "why": "No latency or availability impact yet, so investigate (top processes, recent jobs or deploys) before acting.",
+        "confidence": 0.8,
+        "contributing": [
+          {
+            "signal": "cpu_pct",
+            "kind": "anomaly",
+            "source_id": "src-103a4aded3",
+            "severity": "critical",
+            "at": "2026-11-20T10:45:25.758Z",
+            "event_time": "2026-11-20T10:45:24.324Z",
+            "repeats": 0,
+            "observed": 95.4,
+            "baseline_mean": 41.71,
+            "baseline_sd": 1.54,
+            "z": 34.96,
+            "warm": true,
+            "rule": "|z| ≥ 3 and |Δ| ≥ 15"
+          },
+          {
+            "signal": "cpu_pct",
+            "kind": "threshold",
+            "source_id": "src-103a4aded3",
+            "severity": "critical",
+            "at": "2026-11-20T10:45:25.758Z",
+            "event_time": "2026-11-20T10:45:24.324Z",
+            "repeats": 0,
+            "observed": 95.4,
+            "baseline_mean": 41.71,
+            "baseline_sd": 1.54,
+            "z": 34.96,
+            "warm": true,
+            "threshold": "≥ poor 95"
+          }
+        ],
+        "reasoning": [
+          "1. cpu_pct on src-103a4aded3: 95.4 vs baseline 41.71 ± 1.54 (z = 34.96) → anomaly",
+          "2. cpu_pct on src-103a4aded3: 95.4 ≥ poor 95 (baseline 41.71, z = 34.96) → threshold breach",
+          "3. 2 alert(s) on 1 source(s) within 60s → one incident.",
+          "4. Rule \"cpu_only\" matched {cpu_pct} → investigate. No latency or availability impact yet, so investigate (top processes, recent jobs or deploys) before acting."
+        ],
+        "action": {
+          "id": "investigate",
+          "label": "Investigate (no automatic action proposed)",
+          "reversible": null
+        }
+      },
+      "remediation": null
+    },
+    {
+      "id": 2,
+      "opened_at": "2026-11-20T10:46:19.938Z",
+      "updated_ms": 1795171604089,
+      "status": "resolved",
+      "resolved_at": "2026-11-20T10:48:44.899Z",
+      "sources": [
+        "src-37905fb03d"
+      ],
+      "signals": [
+        "cpu_pct",
+        "latency_ms",
+        "packet_loss_pct",
+        "service_up"
+      ],
+      "alert_count": 7,
+      "recommendation": {
+        "rule": "overload_down",
+        "cause": "The service became unavailable while CPU was saturated on the same source: overload or crash loop.",
+        "why": "Availability loss together with CPU saturation on one source points at the service process, not the network.",
+        "confidence": 0.95,
+        "contributing": [
+          {
+            "signal": "cpu_pct",
+            "kind": "anomaly",
+            "source_id": "src-37905fb03d",
+            "severity": "critical",
+            "at": "2026-11-20T10:46:19.938Z",
+            "event_time": "2026-11-20T10:46:18.675Z",
+            "repeats": 0,
+            "observed": 63.24,
+            "baseline_mean": 34.66,
+            "baseline_sd": 1.05,
+            "z": 27.31,
+            "warm": true,
+            "rule": "|z| ≥ 3 and |Δ| ≥ 15"
+          },
+          {
+            "signal": "latency_ms",
+            "kind": "anomaly",
+            "source_id": "src-37905fb03d",
+            "severity": "critical",
+            "at": "2026-11-20T10:46:19.938Z",
+            "event_time": "2026-11-20T10:46:18.675Z",
+            "repeats": 0,
+            "observed": 199.665,
+            "baseline_mean": 23.99,
+            "baseline_sd": 2,
+            "z": 87.84,
+            "warm": true,
+            "rule": "|z| ≥ 3 and |Δ| ≥ 40"
+          },
+          {
+            "signal": "latency_ms",
+            "kind": "threshold",
+            "source_id": "src-37905fb03d",
+            "severity": "critical",
+            "at": "2026-11-20T10:46:19.938Z",
+            "event_time": "2026-11-20T10:46:18.675Z",
+            "repeats": 1,
+            "observed": 408.81,
+            "baseline_mean": 23.99,
+            "baseline_sd": 2,
+            "z": 192.41,
+            "warm": true,
+            "threshold": "≥ poor 400"
+          },
+          {
+            "signal": "packet_loss_pct",
+            "kind": "anomaly",
+            "source_id": "src-37905fb03d",
+            "severity": "critical",
+            "at": "2026-11-20T10:46:19.938Z",
+            "event_time": "2026-11-20T10:46:18.675Z",
+            "repeats": 0,
+            "observed": 2.285,
+            "baseline_mean": 0.1,
+            "baseline_sd": 0.1,
+            "z": 21.85,
+            "warm": true,
+            "rule": "|z| ≥ 3 and |Δ| ≥ 1"
+          },
+          {
+            "signal": "packet_loss_pct",
+            "kind": "threshold",
+            "source_id": "src-37905fb03d",
+            "severity": "warning",
+            "at": "2026-11-20T10:46:19.938Z",
+            "event_time": "2026-11-20T10:46:18.675Z",
+            "repeats": 0,
+            "observed": 2.285,
+            "baseline_mean": 0.1,
+            "baseline_sd": 0.1,
+            "z": 21.85,
+            "warm": true,
+            "threshold": "≥ fair 2"
+          },
+          {
+            "signal": "service_up",
+            "kind": "threshold",
+            "source_id": "src-37905fb03d",
+            "severity": "critical",
+            "at": "2026-11-20T10:46:19.938Z",
+            "event_time": "2026-11-20T10:46:18.675Z",
+            "repeats": 0,
+            "observed": 0.5,
+            "baseline_mean": 1,
+            "baseline_sd": 0.5,
+            "z": -1,
+            "warm": true,
+            "threshold": "< 1 (down)"
+          },
+          {
+            "signal": "cpu_pct",
+            "kind": "threshold",
+            "source_id": "src-37905fb03d",
+            "severity": "warning",
+            "at": "2026-11-20T10:46:22.003Z",
+            "event_time": "2026-11-20T10:46:20.676Z",
+            "repeats": 0,
+            "observed": 93.49,
+            "baseline_mean": 34.66,
+            "baseline_sd": 1.05,
+            "z": 56.23,
+            "warm": true,
+            "threshold": "≥ fair 85"
+          }
+        ],
+        "reasoning": [
+          "1. cpu_pct on src-37905fb03d: 63.24 vs baseline 34.66 ± 1.05 (z = 27.31) → anomaly",
+          "2. latency_ms on src-37905fb03d: 199.665 vs baseline 23.99 ± 2 (z = 87.84) → anomaly",
+          "3. latency_ms on src-37905fb03d: 408.81 ≥ poor 400 (baseline 23.99, z = 192.41) → threshold breach",
+          "4. packet_loss_pct on src-37905fb03d: 2.285 vs baseline 0.1 ± 0.1 (z = 21.85) → anomaly",
+          "5. packet_loss_pct on src-37905fb03d: 2.285 ≥ fair 2 (baseline 0.1, z = 21.85) → threshold breach",
+          "6. service_up on src-37905fb03d: 0.5 < 1 (down) (baseline 1, z = -1) → threshold breach",
+          "7. cpu_pct on src-37905fb03d: 93.49 ≥ fair 85 (baseline 34.66, z = 56.23) → threshold breach",
+          "8. 7 alert(s) on 1 source(s) within 60s → one incident.",
+          "9. Rule \"overload_down\" matched {cpu_pct, latency_ms, packet_loss_pct, service_up} → restart_service. Availability loss together with CPU saturation on one source points at the service process, not the network."
+        ],
+        "action": {
+          "id": "restart_service",
+          "label": "Restart the affected service",
+          "rollback": "Restore the previous instance from the pre-restart snapshot",
+          "reversible": true,
+          "mode": "simulation"
+        }
+      },
+      "remediation": {
+        "state": "executed_simulated",
+        "action": "restart_service",
+        "label": "Restart the affected service",
+        "approved_by": "viewer@acme",
+        "approved_at": "2026-11-20T10:48:22.254Z",
+        "rollback": "Restore the previous instance from the pre-restart snapshot",
+        "checks": [
+          {
+            "check": "action is on the remediation allow-list",
+            "ok": true
+          },
+          {
+            "check": "action is reversible and has a rollback plan",
+            "ok": true
+          },
+          {
+            "check": "incident is open",
+            "ok": true
+          },
+          {
+            "check": "not already executed",
+            "ok": true
+          },
+          {
+            "check": "human approver identified",
+            "ok": true
+          },
+          {
+            "check": "execution mode is simulation (no real system is touched)",
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "opened_at": "2026-11-20T10:48:31.692Z",
+      "updated_ms": 1795171719756,
+      "status": "open",
+      "resolved_at": null,
+      "sources": [
+        "src-37905fb03d"
+      ],
+      "signals": [
+        "auth_failure"
+      ],
+      "alert_count": 1,
+      "recommendation": {
+        "rule": "bruteforce",
+        "cause": "Repeated failed logins from many origins against several accounts: likely password guessing.",
+        "why": "The burst is concentrated on one source. A temporary local block stops the guessing while raw auth records stay on site for investigation.",
+        "confidence": 0.6,
+        "contributing": [
+          {
+            "signal": "auth_failure",
+            "kind": "security",
+            "source_id": "src-37905fb03d",
+            "severity": "critical",
+            "at": "2026-11-20T10:48:31.692Z",
+            "event_time": "2026-11-20T10:48:31.583Z",
+            "repeats": 1,
+            "failed_count": 22,
+            "distinct_accounts": 6,
+            "distinct_origins": 16,
+            "window_s": 60,
+            "threshold": "≥ poor 20",
+            "note": "Counts only: usernames and IPs stayed on the collector"
+          }
+        ],
+        "reasoning": [
+          "1. auth_failure on src-37905fb03d: 22 failed logins in 60s from 16 origins on 6 accounts (≥ poor 20)",
+          "2. 1 alert(s) on 1 source(s) within 60s → one incident.",
+          "3. Rule \"bruteforce\" matched {auth_failure} → block_origins_locally. The burst is concentrated on one source. A temporary local block stops the guessing while raw auth records stay on site for investigation."
+        ],
+        "action": {
+          "id": "block_origins_locally",
+          "label": "Temporarily block offending origins at the site (origin list stays on the collector)",
+          "rollback": "Remove the temporary block",
+          "reversible": true,
+          "mode": "simulation"
+        }
+      },
+      "remediation": {
+        "state": "executed_simulated",
+        "action": "block_origins_locally",
+        "label": "Temporarily block offending origins at the site (origin list stays on the collector)",
+        "approved_by": "viewer@acme",
+        "approved_at": "2026-11-20T10:48:39.020Z",
+        "rollback": "Remove the temporary block",
+        "checks": [
+          {
+            "check": "action is on the remediation allow-list",
+            "ok": true
+          },
+          {
+            "check": "action is reversible and has a rollback plan",
+            "ok": true
+          },
+          {
+            "check": "incident is open",
+            "ok": true
+          },
+          {
+            "check": "not already executed",
+            "ok": true
+          },
+          {
+            "check": "human approver identified",
+            "ok": true
+          },
+          {
+            "check": "execution mode is simulation (no real system is touched)",
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "opened_at": "2026-11-20T10:49:26.156Z",
+      "updated_ms": 1795171766156,
+      "status": "open",
+      "resolved_at": null,
+      "sources": [
+        "col-842356aed9"
+      ],
+      "signals": [
+        "collector_heartbeat"
+      ],
+      "alert_count": 1,
+      "recommendation": {
+        "rule": "collector_offline",
+        "cause": "The collector stopped sending heartbeats, so site visibility is lost (the site itself may be fine).",
+        "why": "Heartbeats are the only liveness signal. Data buffered at the site replays after reconnect, so restarting the collector is safe.",
+        "confidence": 0.6,
+        "contributing": [
+          {
+            "signal": "collector_heartbeat",
+            "kind": "offline",
+            "source_id": "col-842356aed9",
+            "severity": "critical",
+            "at": "2026-11-20T10:49:26.156Z",
+            "event_time": "2026-11-20T10:48:55.776Z",
+            "repeats": 0,
+            "last_seen": "2026-11-20T10:48:55.776Z",
+            "age_s": 30,
+            "limit_s": 30
+          }
+        ],
+        "reasoning": [
+          "1. collector_heartbeat on col-842356aed9: no heartbeat for 30s (limit 30s)",
+          "2. 1 alert(s) on 1 source(s) within 60s → one incident.",
+          "3. Rule \"collector_offline\" matched {collector_heartbeat} → restart_collector. Heartbeats are the only liveness signal. Data buffered at the site replays after reconnect, so restarting the collector is safe."
+        ],
+        "action": {
+          "id": "restart_collector",
+          "label": "Restart the collector service",
+          "rollback": "None needed: restart is idempotent and buffered data replays",
+          "reversible": true,
+          "mode": "simulation"
+        }
+      },
+      "remediation": null
+    }
+  ],
+  "alerts": [
+    {
+      "id": 1,
+      "created_at": "2026-11-20T10:45:25.758Z",
+      "created_ms": 1795171525758,
+      "incident_id": 1,
+      "source_id": "src-103a4aded3",
+      "signal": "cpu_pct",
+      "kind": "anomaly",
+      "severity": "critical",
+      "event_time": "2026-11-20T10:45:24.324Z",
+      "latency_ms": 1434,
+      "stream": "simulated",
+      "detail": {
+        "observed": 95.4,
+        "baseline_mean": 41.71,
+        "baseline_sd": 1.54,
+        "z": 34.96,
+        "warm": true,
+        "rule": "|z| ≥ 3 and |Δ| ≥ 15"
+      },
+      "repeats": 0
+    },
+    {
+      "id": 2,
+      "created_at": "2026-11-20T10:45:25.758Z",
+      "created_ms": 1795171525758,
+      "incident_id": 1,
+      "source_id": "src-103a4aded3",
+      "signal": "cpu_pct",
+      "kind": "threshold",
+      "severity": "critical",
+      "event_time": "2026-11-20T10:45:24.324Z",
+      "latency_ms": 1434,
+      "stream": "simulated",
+      "detail": {
+        "observed": 95.4,
+        "baseline_mean": 41.71,
+        "baseline_sd": 1.54,
+        "z": 34.96,
+        "warm": true,
+        "threshold": "≥ poor 95"
+      },
+      "repeats": 0
+    },
+    {
+      "id": 3,
+      "created_at": "2026-11-20T10:46:19.938Z",
+      "created_ms": 1795171579938,
+      "incident_id": 2,
+      "source_id": "src-37905fb03d",
+      "signal": "cpu_pct",
+      "kind": "anomaly",
+      "severity": "critical",
+      "event_time": "2026-11-20T10:46:18.675Z",
+      "latency_ms": 1263,
+      "stream": "simulated",
+      "detail": {
+        "observed": 63.24,
+        "baseline_mean": 34.66,
+        "baseline_sd": 1.05,
+        "z": 27.31,
+        "warm": true,
+        "rule": "|z| ≥ 3 and |Δ| ≥ 15"
+      },
+      "repeats": 0
+    },
+    {
+      "id": 4,
+      "created_at": "2026-11-20T10:46:19.938Z",
+      "created_ms": 1795171579938,
+      "incident_id": 2,
+      "source_id": "src-37905fb03d",
+      "signal": "latency_ms",
+      "kind": "anomaly",
+      "severity": "critical",
+      "event_time": "2026-11-20T10:46:18.675Z",
+      "latency_ms": 1263,
+      "stream": "simulated",
+      "detail": {
+        "observed": 199.665,
+        "baseline_mean": 23.99,
+        "baseline_sd": 2,
+        "z": 87.84,
+        "warm": true,
+        "rule": "|z| ≥ 3 and |Δ| ≥ 40"
+      },
+      "repeats": 0
+    },
+    {
+      "id": 5,
+      "created_at": "2026-11-20T10:46:19.938Z",
+      "created_ms": 1795171579938,
+      "incident_id": 2,
+      "source_id": "src-37905fb03d",
+      "signal": "latency_ms",
+      "kind": "threshold",
+      "severity": "critical",
+      "event_time": "2026-11-20T10:46:18.675Z",
+      "latency_ms": 1263,
+      "stream": "simulated",
+      "detail": {
+        "observed": 408.81,
+        "baseline_mean": 23.99,
+        "baseline_sd": 2,
+        "z": 192.41,
+        "warm": true,
+        "threshold": "≥ poor 400"
+      },
+      "repeats": 1
+    },
+    {
+      "id": 6,
+      "created_at": "2026-11-20T10:46:19.938Z",
+      "created_ms": 1795171579938,
+      "incident_id": 2,
+      "source_id": "src-37905fb03d",
+      "signal": "packet_loss_pct",
+      "kind": "anomaly",
+      "severity": "critical",
+      "event_time": "2026-11-20T10:46:18.675Z",
+      "latency_ms": 1263,
+      "stream": "simulated",
+      "detail": {
+        "observed": 2.285,
+        "baseline_mean": 0.1,
+        "baseline_sd": 0.1,
+        "z": 21.85,
+        "warm": true,
+        "rule": "|z| ≥ 3 and |Δ| ≥ 1"
+      },
+      "repeats": 0
+    },
+    {
+      "id": 7,
+      "created_at": "2026-11-20T10:46:19.938Z",
+      "created_ms": 1795171579938,
+      "incident_id": 2,
+      "source_id": "src-37905fb03d",
+      "signal": "packet_loss_pct",
+      "kind": "threshold",
+      "severity": "warning",
+      "event_time": "2026-11-20T10:46:18.675Z",
+      "latency_ms": 1263,
+      "stream": "simulated",
+      "detail": {
+        "observed": 2.285,
+        "baseline_mean": 0.1,
+        "baseline_sd": 0.1,
+        "z": 21.85,
+        "warm": true,
+        "threshold": "≥ fair 2"
+      },
+      "repeats": 0
+    },
+    {
+      "id": 8,
+      "created_at": "2026-11-20T10:46:19.938Z",
+      "created_ms": 1795171579938,
+      "incident_id": 2,
+      "source_id": "src-37905fb03d",
+      "signal": "service_up",
+      "kind": "threshold",
+      "severity": "critical",
+      "event_time": "2026-11-20T10:46:18.675Z",
+      "latency_ms": 1263,
+      "stream": "simulated",
+      "detail": {
+        "observed": 0.5,
+        "baseline_mean": 1,
+        "baseline_sd": 0.5,
+        "z": -1,
+        "warm": true,
+        "threshold": "< 1 (down)"
+      },
+      "repeats": 0
+    },
+    {
+      "id": 9,
+      "created_at": "2026-11-20T10:46:22.003Z",
+      "created_ms": 1795171582003,
+      "incident_id": 2,
+      "source_id": "src-37905fb03d",
+      "signal": "cpu_pct",
+      "kind": "threshold",
+      "severity": "warning",
+      "event_time": "2026-11-20T10:46:20.676Z",
+      "latency_ms": 1327,
+      "stream": "simulated",
+      "detail": {
+        "observed": 93.49,
+        "baseline_mean": 34.66,
+        "baseline_sd": 1.05,
+        "z": 56.23,
+        "warm": true,
+        "threshold": "≥ fair 85"
+      },
+      "repeats": 0
+    },
+    {
+      "id": 10,
+      "created_at": "2026-11-20T10:48:31.692Z",
+      "created_ms": 1795171711692,
+      "incident_id": 3,
+      "source_id": "src-37905fb03d",
+      "signal": "auth_failure",
+      "kind": "security",
+      "severity": "critical",
+      "event_time": "2026-11-20T10:48:31.583Z",
+      "latency_ms": 109,
+      "stream": "simulated",
+      "detail": {
+        "failed_count": 22,
+        "distinct_accounts": 6,
+        "distinct_origins": 16,
+        "window_s": 60,
+        "threshold": "≥ poor 20",
+        "note": "Counts only: usernames and IPs stayed on the collector"
+      },
+      "repeats": 1
+    },
+    {
+      "id": 11,
+      "created_at": "2026-11-20T10:49:26.156Z",
+      "created_ms": 1795171766156,
+      "incident_id": 4,
+      "source_id": "col-842356aed9",
+      "signal": "collector_heartbeat",
+      "kind": "offline",
+      "severity": "critical",
+      "event_time": "2026-11-20T10:48:55.776Z",
+      "latency_ms": 30380,
+      "stream": "simulated",
+      "detail": {
+        "last_seen": "2026-11-20T10:48:55.776Z",
+        "age_s": 30,
+        "limit_s": 30
+      },
+      "repeats": 0
+    }
+  ],
+  "collector_transitions": [
+    {
+      "id": 1,
+      "at": "2026-11-20T10:44:09.939Z",
+      "entity": "collector:col-842356aed9",
+      "from_state": "none",
+      "to_state": "Excellent",
+      "reasons": [
+        "heartbeats on time"
+      ]
+    },
+    {
+      "id": 13,
+      "at": "2026-11-20T10:48:05.564Z",
+      "entity": "collector:col-842356aed9",
+      "from_state": "Excellent",
+      "to_state": "Good",
+      "reasons": [
+        "replaying backlog: 15 payload(s)"
+      ]
+    },
+    {
+      "id": 14,
+      "at": "2026-11-20T10:48:10.616Z",
+      "entity": "collector:col-842356aed9",
+      "from_state": "Good",
+      "to_state": "Excellent",
+      "reasons": [
+        "heartbeats on time"
+      ]
+    },
+    {
+      "id": 17,
+      "at": "2026-11-20T10:49:11.060Z",
+      "entity": "collector:col-842356aed9",
+      "from_state": "Excellent",
+      "to_state": "Fair",
+      "reasons": [
+        "heartbeat late: 15s"
+      ]
+    },
+    {
+      "id": 20,
+      "at": "2026-11-20T10:49:26.156Z",
+      "entity": "collector:col-842356aed9",
+      "from_state": "Fair",
+      "to_state": "Poor",
+      "reasons": [
+        "offline: last heartbeat 30s ago (limit 30s)"
+      ]
+    },
+    {
+      "id": 21,
+      "at": "2026-11-20T10:49:45.289Z",
+      "entity": "collector:col-842356aed9",
+      "from_state": "Poor",
+      "to_state": "Good",
+      "reasons": [
+        "replaying backlog: 1 payload(s)"
+      ]
+    },
+    {
+      "id": 24,
+      "at": "2026-11-20T10:49:50.331Z",
+      "entity": "collector:col-842356aed9",
+      "from_state": "Good",
+      "to_state": "Excellent",
+      "reasons": [
+        "heartbeats on time"
+      ]
+    }
+  ],
+  "egress_example": {
+    "raw_local_only": {
+      "id": 4288,
+      "ts": "2026-11-20T10:47:29.333Z",
+      "host": "db-01",
+      "kind": "log",
+      "line": "{\"ts\":\"2026-11-20T10:47:29.333Z\",\"host\":\"db-01\",\"type\":\"log\",\"level\":\"error\",\"category\":\"app\",\"message\":\"DB connect failed: postgres://app_user:S3cr3t-Pa55@10.20.0.5:5432/orders password=S3cr3t-Pa55 aws_key=AKIAIOSFODNN7EXAMPLE\"}",
+      "hits": [
+        [
+          124,
+          156,
+          "url_credentials"
+        ],
+        [
+          178,
+          198,
+          "password"
+        ],
+        [
+          207,
+          227,
+          "aws_key"
+        ]
+      ],
+      "payload_id": "bd88f952-b290-40b3-9667-21ebaef91a3a"
+    },
+    "payload": {
+      "seq": 99,
+      "payload_id": "bd88f952-b290-40b3-9667-21ebaef91a3a",
+      "status": "acked",
+      "digest_match": 1,
+      "body": "{\"collector_id\":\"col-842356aed9\",\"created_at\":\"2026-11-20T10:47:29.340Z\",\"payload_id\":\"bd88f952-b290-40b3-9667-21ebaef91a3a\",\"policy_version\":\"sp-policy-1\",\"records\":[{\"avg\":35.23,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":35.63,\"max\":35.63,\"metric\":\"cpu_pct\",\"source_id\":\"src-37905fb03d\"},{\"avg\":57.77,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":58.63,\"max\":58.63,\"metric\":\"mem_pct\",\"source_id\":\"src-37905fb03d\"},{\"avg\":61,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":61,\"max\":61,\"metric\":\"disk_pct\",\"source_id\":\"src-37905fb03d\"},{\"avg\":25.755,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":26.7,\"max\":26.7,\"metric\":\"latency_ms\",\"source_id\":\"src-37905fb03d\"},{\"avg\":0.07,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":0.09,\"max\":0.09,\"metric\":\"packet_loss_pct\",\"source_id\":\"src-37905fb03d\"},{\"avg\":133.855,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":135.58,\"max\":135.58,\"metric\":\"bw_mbps\",\"source_id\":\"src-37905fb03d\"},{\"avg\":1,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":1,\"max\":1,\"metric\":\"service_up\",\"source_id\":\"src-37905fb03d\"},{\"avg\":42.765,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":41.69,\"max\":43.84,\"metric\":\"cpu_pct\",\"source_id\":\"src-103a4aded3\"},{\"avg\":70.83,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":70.99,\"max\":70.99,\"metric\":\"mem_pct\",\"source_id\":\"src-103a4aded3\"},{\"avg\":68,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":68,\"max\":68,\"metric\":\"disk_pct\",\"source_id\":\"src-103a4aded3\"},{\"avg\":12.75,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":12.72,\"max\":12.78,\"metric\":\"latency_ms\",\"source_id\":\"src-103a4aded3\"},{\"avg\":0.06,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":0.07,\"max\":0.07,\"metric\":\"packet_loss_pct\",\"source_id\":\"src-103a4aded3\"},{\"avg\":95.39,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":93.26,\"max\":97.52,\"metric\":\"bw_mbps\",\"source_id\":\"src-103a4aded3\"},{\"avg\":1,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":1,\"max\":1,\"metric\":\"service_up\",\"source_id\":\"src-103a4aded3\"},{\"avg\":20.63,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":20.69,\"max\":20.69,\"metric\":\"cpu_pct\",\"source_id\":\"src-17444619cb\"},{\"avg\":40.21,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":40.57,\"max\":40.57,\"metric\":\"mem_pct\",\"source_id\":\"src-17444619cb\"},{\"avg\":35,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":35,\"max\":35,\"metric\":\"disk_pct\",\"source_id\":\"src-17444619cb\"},{\"avg\":30.095,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":27.18,\"max\":33.01,\"metric\":\"latency_ms\",\"source_id\":\"src-17444619cb\"},{\"avg\":0.17,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":0.15,\"max\":0.19,\"metric\":\"packet_loss_pct\",\"source_id\":\"src-17444619cb\"},{\"avg\":387.455,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":396.16,\"max\":396.16,\"metric\":\"bw_mbps\",\"source_id\":\"src-17444619cb\"},{\"avg\":1,\"count\":2,\"event_time\":\"2026-11-20T10:47:28.151Z\",\"kind\":\"metric\",\"last\":1,\"max\":1,\"metric\":\"service_up\",\"source_id\":\"src-17444619cb\"},{\"category\":\"app\",\"count\":1,\"event_time\":\"2026-11-20T10:47:29.157Z\",\"kind\":\"log_summary\",\"redactions\":0,\"severity\":\"info\",\"source_id\":\"src-37905fb03d\"},{\"category\":\"app\",\"count\":1,\"event_time\":\"2026-11-20T10:47:29.333Z\",\"kind\":\"log_summary\",\"redactions\":3,\"severity\":\"error\",\"source_id\":\"src-103a4aded3\"}],\"region\":\"ap-south\",\"schema\":\"signal-passport/1\",\"seq\":99,\"source_tz\":\"Asia/Kolkata\",\"stream\":\"simulated\"}",
+      "passport": {
+        "payload_id": "bd88f952-b290-40b3-9667-21ebaef91a3a",
+        "created_at": "2026-11-20T10:47:29.340Z",
+        "policy_version": "sp-policy-1",
+        "destination_region": "ap-south",
+        "allowed_fields": [
+          "collector_id",
+          "created_at",
+          "payload_id",
+          "policy_version",
+          "records[].avg",
+          "records[].category",
+          "records[].count",
+          "records[].event_time",
+          "records[].kind",
+          "records[].last",
+          "records[].max",
+          "records[].metric",
+          "records[].redactions",
+          "records[].severity",
+          "records[].source_id",
+          "region",
+          "schema",
+          "seq",
+          "source_tz",
+          "stream"
+        ],
+        "record_count": 23,
+        "sha256": "bad2d7001a23ee26ed8ccf77a7bab7b79bbc5ffc8edb14a70b5a59540e60353a"
+      },
+      "receipt": {
+        "payload_id": "bd88f952-b290-40b3-9667-21ebaef91a3a",
+        "received_digest": "bad2d7001a23ee26ed8ccf77a7bab7b79bbc5ffc8edb14a70b5a59540e60353a",
+        "received_at": "2026-11-20T10:47:29.426Z",
+        "region": "ap-south",
+        "status": "stored",
+        "records_stored": 23,
+        "late_records": 0
+      }
+    }
+  },
+  "collector_audit_kinds": [
+    {
+      "event": "acked",
+      "n": 155
+    },
+    {
+      "event": "recovered_unsent_raw",
+      "n": 1
+    },
+    {
+      "event": "retry",
+      "n": 8
+    }
+  ]
+}

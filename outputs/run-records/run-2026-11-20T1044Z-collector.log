@@ -1,0 +1,4 @@
+[collector acme-site-1] col-842356aed9 region=ap-south stream=simulated (http://127.0.0.1:7200/stream)
+[collector acme-site-1] local UI  http://127.0.0.1:7100   egress -> https://localhost:8443
+[collector acme-site-1] col-842356aed9 region=ap-south stream=simulated (http://127.0.0.1:7200/stream)
+[collector acme-site-1] local UI  http://127.0.0.1:7100   egress -> https://localhost:8443

@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signal Passport SaaS</title>
+<style>
+  :root { --bg:#f6f7f9; --panel:#fff; --line:#e3e6ea; --text:#1b1f24; --muted:#667085; --ex:#1a7f37; --good:#2f81f7; --fair:#bf8700; --poor:#cf222e; --accent:#0969da; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0d1117; --panel:#161b22; --line:#30363d; --text:#e6edf3; --muted:#8b949e; --ex:#3fb950; --good:#58a6ff; --fair:#d29922; --poor:#f85149; --accent:#58a6ff; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; }
+  header { padding:12px 16px; background:var(--panel); border-bottom:1px solid var(--line); display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; }
+  h1 { font-size:17px; margin:0; } h2 { font-size:13px; margin:0 0 8px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  main { display:grid; grid-template-columns:repeat(12, minmax(0,1fr)); gap:12px; padding:12px; }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; min-width:0; }
+  .c4 { grid-column:span 4; } .c6 { grid-column:span 6; } .c8 { grid-column:span 8; } .c12 { grid-column:span 12; }
+  @media (max-width: 1000px) { .c4, .c6, .c8 { grid-column:span 12; } }
+  .muted { color:var(--muted); } .small { font-size:12px; }
+  .st { display:inline-block; padding:1px 8px; border-radius:10px; font-size:12px; font-weight:600; color:#fff; }
+  .Excellent { background:var(--ex); } .Good { background:var(--good); } .Fair { background:var(--fair); } .Poor { background:var(--poor); } .none { background:var(--muted); }
+  .badge { padding:2px 8px; border-radius:10px; font-size:12px; font-weight:600; border:1px solid currentColor; }
+  .card { border:1px solid var(--line); border-radius:6px; padding:8px; margin-bottom:8px; cursor:pointer; }
+  .card.sel { outline:2px solid var(--accent); }
+  table { border-collapse:collapse; width:100%; font-size:12px; } td, th { text-align:left; padding:3px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .mono { font-family:ui-monospace, Consolas, monospace; font-size:12px; word-break:break-all; }
+  button { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:4px 10px; cursor:pointer; }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .scroll { max-height:340px; overflow:auto; }
+  ol { margin:4px 0; padding-left:20px; } li { margin:2px 0; }
+  .kpi { display:flex; gap:16px; flex-wrap:wrap; } .kpi div { min-width:90px; } .kpi b { font-size:20px; display:block; }
+  .pass { color:var(--ex); font-weight:600; } .fail { color:var(--poor); font-weight:600; }
+  #login { max-width:420px; margin:80px auto; background:var(--panel); padding:20px; border:1px solid var(--line); border-radius:8px; }
+  input { width:100%; padding:6px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); }
+  svg text { fill:var(--muted); font-size:10px; }
+</style>
+</head>
+<body>
+<div id="login" hidden>
+  <h1>Signal Passport SaaS</h1>
+  <p class="muted">Enter a tenant viewer token (from <span class="mono">viewer-tokens.json</span> in the local state directory). The token alone decides which tenant you see.</p>
+  <input id="tok" type="password" placeholder="viewer token" autocomplete="off">
+  <p><button class="primary" onclick="login()">View tenant</button></p>
+</div>
+<div id="app" hidden>
+<header>
+  <h1>Signal Passport · SaaS</h1>
+  <span id="tenant" class="muted"></span>
+  <span id="streamBadge" class="badge"></span>
+  <span style="flex:1"></span>
+  <span id="clock" class="muted small"></span>
+  <button onclick="logout()">Switch tenant</button>
+</header>
+<main>
+  <section class="c4"><h2>Collector fleet</h2><div id="fleet"></div></section>
+  <section class="c8"><h2>Sources · health (click for trend)</h2><div id="sources" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px"></div></section>
+  <section class="c8"><h2>Trend · selected source</h2><div id="chart" class="muted">Select a source.</div></section>
+  <section class="c4"><h2>Noise reduction & privacy</h2><div id="kpi" class="kpi"></div></section>
+  <section class="c12"><h2>Incidents · explainable recommendations</h2><div id="incidents"></div></section>
+  <section class="c6"><h2>Real-time targets (measured from timestamps)</h2><div id="timing"></div></section>
+  <section class="c6"><h2>Received payloads · Signal Passport receipts</h2><div id="payloads" class="scroll"></div></section>
+  <section class="c6"><h2>State transitions (UTC)</h2><div id="transitions" class="scroll"></div></section>
+  <section class="c6"><h2>Audit</h2><div id="audit" class="scroll"></div></section>
+  <section class="c12"><h2>Thresholds (configurable: saas/config/thresholds.json)</h2><div id="thresholds" class="small mono"></div></section>
+</main>
+</div>
+<script>
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const st = s => `<span class="st ${esc(s || 'none')}">${esc(s || '—')}</span>`;
+const utc = iso => iso ? new Date(iso).toISOString().slice(11, 19) + 'Z' : '—';
+const local = iso => iso ? new Date(iso).toLocaleTimeString() : '';
+const store = { get(k) { try { return sessionStorage.getItem(k); } catch { return null; } }, set(k, v) { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch {} } };
+let TOKEN = store.get('sp_viewer'), O = null, selSrc = null, reported = new Set(), first = true;
+
+function login() { TOKEN = document.getElementById('tok').value.trim(); store.set('sp_viewer', TOKEN); reported = new Set(); first = true; poll(); }
+function logout() { TOKEN = null; store.set('sp_viewer', null); O = null; selSrc = null; show(); }
+function show() { document.getElementById('login').hidden = !!O; document.getElementById('app').hidden = !O; }
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { authorization: 'Bearer ' + TOKEN, 'content-type': 'application/json' } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(j.error || r.status), { status: r.status });
+  return j;
+}
+async function act(id, what) {
+  try { const r = await api(`/api/incidents/${id}/${what}`, { method: 'POST', body: '{}' }); if (!r.ok) alert(JSON.stringify(r.checks || r.error)); }
+  catch (e) { alert(e.message); }
+  poll();
+}
+
+function chart(series) {
+  const W = 760, H = 150, pad = 28;
+  const pts = series.points;
+  if (!pts.length) return `<div class="muted">${esc(series.metric)}: no data</div>`;
+  const t0 = Date.parse(pts[0].event_time), t1 = Math.max(t0 + 1, Date.parse(pts[pts.length - 1].event_time));
+  const th = series.thresholds || {};
+  const vals = pts.map(p => p.value).concat(series.baseline ? [series.baseline.mean] : []);
+  const lo = Math.min(...vals, 0), hi = Math.max(...vals, th.fair ?? 0) * 1.1 || 1;
+  const x = t => pad + (W - pad - 4) * (t - t0) / (t1 - t0), y = v => H - pad + 4 - (H - pad) * (v - lo) / (hi - lo);
+  const line = pts.filter(p => !p.late).map(p => `${x(Date.parse(p.event_time)).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
+  const late = pts.filter(p => p.late).map(p => `<circle cx="${x(Date.parse(p.event_time))}" cy="${y(p.value)}" r="4" fill="none" stroke="var(--fair)" stroke-width="2"><title>late record placed by event time</title></circle>`).join('');
+  const hl = (v, c, label) => v == null || v > hi ? '' : `<line x1="${pad}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="${c}" stroke-dasharray="4 3"/><text x="${W - 4}" y="${y(v) - 3}" text-anchor="end">${label} ${v}</text>`;
+  const b = series.baseline;
+  const band = b ? `<rect x="${pad}" width="${W - pad}" y="${y(b.mean + 3 * b.sd)}" height="${Math.max(1, y(b.mean - 3 * b.sd) - y(b.mean + 3 * b.sd))}" fill="var(--good)" opacity=".12"><title>baseline ±3σ</title></rect>` + hl(b.mean, 'var(--good)', 'baseline') : '';
+  return `<div class="small"><b>${esc(series.metric)}</b> <span class="muted">· shaded = baseline ±3σ · dashed = thresholds · circles = late records placed by event time</span></div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(series.metric)} trend">${band}${hl(th.fair, 'var(--fair)', 'fair')}${hl(th.poor, 'var(--poor)', 'poor')}
+    <polyline points="${line}" fill="none" stroke="var(--accent)" stroke-width="1.6"/>${late}
+    <text x="${pad}" y="${H - 4}">${utc(pts[0].event_time)}</text><text x="${W - 4}" y="${H - 4}" text-anchor="end">${utc(pts[pts.length - 1].event_time)}</text>
+    <text x="2" y="${y(hi) + 10}">${hi.toFixed(1)}</text><text x="2" y="${y(lo)}">${lo.toFixed(1)}</text></svg>`;
+}
+async function drawChart() {
+  if (!selSrc) return;
+  const metrics = ['cpu_pct', 'latency_ms', 'packet_loss_pct'];
+  const all = await Promise.all(metrics.map(m => api(`/api/series?source_id=${encodeURIComponent(selSrc)}&metric=${m}`)));
+  document.getElementById('chart').innerHTML = `<div class="mono small">${esc(selSrc)}</div>` + all.map(chart).join('');
+}
+
+function render() {
+  const o = O;
+  document.getElementById('tenant').textContent = `${o.tenant.name} (${o.tenant.id}) · home ${o.tenant.home_region} · served by ${o.region}`;
+  const stream = o.payloads[0]?.stream;
+  const sb = document.getElementById('streamBadge');
+  sb.textContent = stream === 'organizer' ? 'ORGANIZER STREAM' : stream ? 'SIMULATED STREAM — not organizer evidence' : 'no data yet';
+  sb.style.color = stream === 'organizer' ? 'var(--ex)' : 'var(--fair)';
+  document.getElementById('clock').textContent = `${utc(o.now)} UTC · ${local(o.now)} ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
+
+  document.getElementById('fleet').innerHTML = o.collectors.map(c => `<div class="card">${st(c.state)} <span class="mono">${esc(c.collector_id)}</span>
+    <div class="small">${c.reasons.map(esc).join('<br>')}</div>
+    <div class="small muted">last seen ${utc(c.last_seen)} (${c.age_s}s ago) · v${esc(c.version)} · cpu ${c.cpu_pct}% · rss ${c.rss_mb} MB · buffered ${c.buffered} · cfg ${esc(c.config_hash)} · ${esc(c.policy_version)}</div></div>`).join('') || '<div class="muted">No collectors have reported.</div>';
+
+  document.getElementById('sources').innerHTML = o.sources.map(s => `<div class="card ${selSrc === s.source_id ? 'sel' : ''}" onclick="selSrc='${s.source_id}';drawChart();render()">
+    ${st(s.state)} <span class="mono">${esc(s.source_id)}</span> <span class="muted small">via ${esc(s.collector_id)}</span>
+    <div class="small">${s.reasons.map(esc).join('<br>')}</div>
+    <div class="small muted">${Object.entries(s.metrics).map(([k, m]) => `${k} <b style="color:var(--text)">${m.value}</b>${m.anomalous ? ' ⚠' : ''}`).join(' · ')}
+    ${s.security ? `<br>failed logins ${s.security.failed_count} (accounts ${s.security.distinct_accounts}, origins ${s.security.distinct_origins}) — counts only` : ''}</div></div>`).join('') || '<div class="muted">No data.</div>';
+
+  const k = o.counters;
+  document.getElementById('kpi').innerHTML = `
+    <div><b>${k.breach_samples}</b><span class="small muted">signal breaches</span></div>
+    <div><b>${k.alerts}</b><span class="small muted">alerts (${k.repeats_suppressed} repeats merged)</span></div>
+    <div><b>${k.incidents}</b><span class="small muted">incidents</span></div>
+    <div><b>${k.secrets_kept_local}</b><span class="small muted">secrets kept local</span></div>
+    <div><b>${k.payloads}</b><span class="small muted">payloads</span></div>
+    <div><b>${k.duplicates_rejected}</b><span class="small muted">duplicates ignored</span></div>
+    <div><b>${k.late_records}</b><span class="small muted">late records placed</span></div>`;
+
+  document.getElementById('incidents').innerHTML = o.incidents.map(i => {
+    const r = i.recommendation || {}, rem = i.remediation;
+    const contrib = (r.contributing || []).map(c => `<tr><td>${esc(c.signal)}</td><td>${esc(c.kind)}</td><td class="mono">${esc(c.source_id)}</td><td>${esc(c.observed ?? c.failed_count ?? '')}</td>
+      <td>${c.baseline_mean != null ? `${c.baseline_mean} ± ${c.baseline_sd}` : ''}</td><td>${c.z ?? ''}</td><td>${esc(c.threshold ?? c.rule ?? '')}</td><td>${esc(c.severity)}</td><td>${c.repeats}</td></tr>`).join('');
+    return `<div class="card" style="cursor:default">
+      <b>#${i.id}</b> ${i.status === 'open' ? '<span class="st Poor">OPEN</span>' : '<span class="st none">resolved</span>'} opened ${utc(i.opened_at)}
+      · sources <span class="mono">${esc(i.sources.join(', '))}</span> · ${i.alert_count} alerts
+      <div style="margin:6px 0"><b>Likely cause:</b> ${esc(r.cause)}</div>
+      <div><b>Recommended:</b> ${esc(r.action?.label)} ${r.action?.rollback ? `<span class="muted">· rollback: ${esc(r.action.rollback)}</span>` : ''} · <b>confidence ${r.confidence}</b></div>
+      <div class="small"><b>Why this action:</b> ${esc(r.why)}</div>
+      <details ${i.status === 'open' ? 'open' : ''}><summary class="small">Contributing signals and reasoning path</summary>
+        <table><tr><th>signal</th><th>kind</th><th>source</th><th>observed</th><th>baseline</th><th>z</th><th>rule/threshold</th><th>severity</th><th>repeats</th></tr>${contrib}</table>
+        <ol class="small">${(r.reasoning || []).map(x => `<li>${esc(x.replace(/^\d+\.\s*/, ''))}</li>`).join('')}</ol></details>
+      <div class="small" style="margin-top:6px">${r.action?.mode === 'simulation'
+        ? (rem ? `Remediation <b>${esc(rem.state)}</b> by ${esc(rem.approved_by)} at ${utc(rem.approved_at)}${rem.rolled_back_at ? `, rolled back ${utc(rem.rolled_back_at)}` : ''}
+             ${rem.state === 'executed_simulated' ? `<button onclick="act(${i.id},'rollback')">Roll back (simulated)</button>` : ''}
+             ${rem.state === 'rolled_back' && i.status === 'open' ? `<button onclick="act(${i.id},'approve')">Approve again</button>` : ''}`
+             : (i.status === 'open' ? `<button class="primary" onclick="act(${i.id},'approve')">Approve (simulated, policy-checked)</button> <span class="muted">Human approval required. Nothing real is changed.</span>` : ''))
+        : '<span class="muted">No automatic action proposed: investigate.</span>'}</div></div>`;
+  }).join('') || '<div class="muted">No incidents.</div>';
+
+  const T = o.timing, row = (label, s, target) => `<tr><td>${label}</td><td>${s.n}</td><td>${s.p50 ?? '—'}</td><td>${s.p95 ?? '—'}</td><td>${s.max ?? '—'}</td>
+    <td>${target == null ? '' : s.n ? (s.p95 <= target ? '<span class="pass">PASS</span>' : '<span class="fail">MISS</span>') : '—'} ${target != null ? `≤ ${target / 1000}s` : ''}</td><td>${esc(s.streams.join(', '))}</td></tr>`;
+  document.getElementById('timing').innerHTML = `<table><tr><th>measure (ms)</th><th>n</th><th>p50</th><th>p95</th><th>max</th><th>target</th><th>stream</th></tr>
+    ${row('event → dashboard render', T.render, 10000)}${row('event → SaaS stored', T.ingest, null)}${row('breach → alert', T.alert, 15000)}
+    ${row('last heartbeat → offline', T.offline, 60000)}${row('backlog: event → render', T.render_backlog, null)}</table>
+    <div class="small muted">Event time = earliest raw event in the 2 s collector window (conservative). Backlog rows (replayed after an outage) are reported separately. Delivery: run <span class="mono">npm run verify</span>.</div>`;
+
+  document.getElementById('payloads').innerHTML = `<table><tr><th>received</th><th>payload_id</th><th>seq</th><th>rec</th><th>late</th><th>received sha256</th><th>policy</th></tr>${o.payloads.map(p =>
+    `<tr><td>${utc(p.received_at)}</td><td class="mono">${esc(p.payload_id.slice(0, 8))}…</td><td>${p.seq}</td><td>${p.record_count}</td><td>${p.late}</td><td class="mono">${esc(p.digest.slice(0, 16))}…</td><td>${esc(p.policy_version)} · ${esc(p.stream)}</td></tr>`).join('')}</table>`;
+  document.getElementById('transitions').innerHTML = `<table>${o.transitions.map(t => `<tr><td>${utc(t.at)}</td><td class="mono">${esc(t.entity)}</td><td>${st(t.from_state === 'none' ? '' : t.from_state)} → ${st(t.to_state)}</td><td class="small">${(t.reasons || []).map(esc).join('; ')}</td></tr>`).join('')}</table>`;
+  document.getElementById('audit').innerHTML = `<table>${o.audit.map(a => `<tr><td>${utc(a.at)}</td><td>${esc(a.actor)}</td><td><b>${esc(a.action)}</b></td><td class="small mono">${esc(JSON.stringify(a.detail)).slice(0, 220)}</td></tr>`).join('')}</table>`;
+  document.getElementById('thresholds').textContent = JSON.stringify(o.thresholds);
+}
+
+async function poll() {
+  if (!TOKEN) { O = null; return show(); }
+  try {
+    O = await api('/api/overview');
+    show(); render();
+    if (first && !selSrc && O.sources[0]) selSrc = O.sources[0].source_id;
+    if (selSrc) drawChart();
+    // Timing evidence: report render time for each newly displayed payload (skip the initial page load).
+    const now = Date.now();
+    const fresh = O.payloads.filter(p => !reported.has(p.payload_id));
+    fresh.forEach(p => reported.add(p.payload_id));
+    if (!first && fresh.length) api('/api/timing', { method: 'POST', body: JSON.stringify({ samples: fresh.map(p => ({ payload_id: p.payload_id, rendered_ms: now })) }) }).catch(() => {});
+    first = false;
+  } catch (e) {
+    if (e.status === 401 || e.status === 421) { alert(e.message); logout(); } else document.getElementById('clock').textContent = 'SaaS unreachable: ' + e.message;
+  }
+}
+show(); poll(); setInterval(poll, 1000);
+</script>
+</body>
+</html>

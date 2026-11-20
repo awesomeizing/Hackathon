@@ -1,0 +1,5 @@
+[sim] SIMULATED stream http://127.0.0.1:7200/stream — not organizer evidence
+[sim] 2026-11-20T10:45:24.302Z injected cpu {"host":"db-01","until":"2026-11-20T10:46:04.302Z"}
+[sim] 2026-11-20T10:46:19.323Z injected incident {"host":"web-01","until":"2026-11-20T10:46:59.323Z"}
+[sim] 2026-11-20T10:47:29.333Z injected secret {"host":"db-01","emitted":1}
+[sim] 2026-11-20T10:48:29.382Z injected bruteforce {"host":"web-01","until":"2026-11-20T10:48:49.382Z"}
