@@ -314,6 +314,25 @@ function proxyCollector(req, res, targetPath) {
   req.pipe(proxyReq);
 }
 
+// Proxy simulator requests from /simulator/* to http://127.0.0.1:7200/*
+function proxySimulator(req, res, targetPath) {
+  const proxyReq = http.request({
+    hostname: '127.0.0.1',
+    port: 7200,
+    path: targetPath,
+    method: req.method,
+    headers: { ...req.headers, host: '127.0.0.1:7200' },
+  }, proxyRes => {
+    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    proxyRes.pipe(res);
+  });
+  proxyReq.on('error', err => {
+    res.writeHead(502, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ error: `Simulator proxy unavailable: ${err.message}` }));
+  });
+  req.pipe(proxyReq);
+}
+
 const DIST_DIR = path.join(__dirname, 'dist');
 const LEGACY_DASHBOARD = path.join(__dirname, 'dashboard.html');
 
@@ -356,6 +375,16 @@ function handler(isTls) {
       if (u.pathname.startsWith('/collector-api/')) {
         const target = '/api/' + u.pathname.slice('/collector-api/'.length) + (u.search || '');
         return proxyCollector(req, res, target);
+      }
+      if (u.pathname === '/raw-collector') {
+        return proxyCollector(req, res, '/');
+      }
+      if (u.pathname === '/simulator/stream' || u.pathname === '/sim/stream') {
+        return proxySimulator(req, res, '/stream');
+      }
+      if (u.pathname.startsWith('/simulator/inject/')) {
+        const target = '/inject/' + u.pathname.slice('/simulator/inject/'.length);
+        return proxySimulator(req, res, target);
       }
       if (u.pathname.startsWith('/api/')) return await viewerApi(req, res, u, send);
 
