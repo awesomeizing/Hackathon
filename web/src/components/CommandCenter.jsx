@@ -12,6 +12,7 @@ import {
   RefreshCw,
   LogOut,
   Key,
+  Info,
 } from 'lucide-react';
 import HealthMatrix from './HealthMatrix';
 import GlyphCurtainHero from './GlyphCurtainHero';
@@ -21,6 +22,7 @@ import IncidentRemediation from './IncidentRemediation';
 import SlaMetricsPanel from './SlaMetricsPanel';
 import TelemetrySwitcher from './TelemetrySwitcher';
 import TumblerPassword from './TumblerPassword';
+import ArchitectureDrawer from './ArchitectureDrawer';
 
 export default function CommandCenter({
   activeTenant = 'acme',
@@ -31,6 +33,8 @@ export default function CommandCenter({
   const [activeTab, setActiveTab] = useState('health'); // 'health', 'firewall', 'secrets', 'egress', 'remediation', 'sla', 'stream'
   const [tenantModalOpen, setTenantModalOpen] = useState(false);
   const [targetTenantToUnlock, setTargetTenantToUnlock] = useState(null);
+  const [architectureOpen, setArchitectureOpen] = useState(false);
+  const [saasLinkCut, setSaasLinkCut] = useState(false);
 
   // Live data states
   const [overview, setOverview] = useState({
@@ -38,7 +42,7 @@ export default function CommandCenter({
     sources: [],
     collectors: [],
     incidents: [],
-    timings: {},
+    timing: {},
     audit: [],
   });
   const [collectorState, setCollectorState] = useState({
@@ -47,6 +51,8 @@ export default function CommandCenter({
     counts: { raw_rows: 0, secrets_seen: 0, acked: 0, rejected: 0 },
     raw: [],
     payloads: [],
+    buffered: 0,
+    link_cut: false,
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -69,6 +75,23 @@ export default function CommandCenter({
       if (colRes.ok) {
         const colData = await colRes.json();
         setCollectorState(colData);
+        if (colData.link_cut !== undefined) {
+          setSaasLinkCut(colData.link_cut);
+        }
+
+        // Post live rendered timing sample to SaaS engine for real latency measurement
+        if (colData.payloads?.[0]?.payload_id) {
+          fetch('/api/timing', {
+            method: 'POST',
+            headers: tenantToken ? { authorization: `Bearer ${tenantToken}` } : {},
+            body: JSON.stringify({
+              samples: [{
+                payload_id: colData.payloads[0].payload_id,
+                rendered_ms: Date.now(),
+              }],
+            }),
+          }).catch(() => {});
+        }
       }
     } catch {}
   };
@@ -84,6 +107,21 @@ export default function CommandCenter({
     setIsRefreshing(true);
     await fetchData();
     setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const handleToggleSaasLink = async () => {
+    const nextCut = !saasLinkCut;
+    try {
+      const res = await fetch('/collector-api/saas/link', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ cut: nextCut }),
+      });
+      if (res.ok) {
+        setSaasLinkCut(nextCut);
+        await fetchData();
+      }
+    } catch {}
   };
 
   const handleScenarioInject = async (type) => {
@@ -133,6 +171,9 @@ export default function CommandCenter({
 
   return (
     <div id="command-center" className="min-h-screen py-10 px-4 sm:px-6 max-w-7xl mx-auto">
+      {/* Architecture & Limitations Drawer */}
+      <ArchitectureDrawer isOpen={architectureOpen} onClose={() => setArchitectureOpen(false)} />
+
       {/* Tenant Switcher Tumbler Modal */}
       {tenantModalOpen && targetTenantToUnlock && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
@@ -140,7 +181,7 @@ export default function CommandCenter({
             <TumblerPassword
               targetCode={targetTenantToUnlock.clearanceCode || '7100'}
               title={`Switch Vault: ${targetTenantToUnlock.name}`}
-              description="Zero-trust cryptographic isolation. Enter tenant vault PIN to verify isolation boundaries."
+              description="Zero-trust cryptographic isolation. Enter tenant vault PIN to verify boundary clearance."
               actionLabel="Unlock & Switch Tenant"
               onUnlock={handleTenantUnlocked}
               onCancel={() => setTenantModalOpen(false)}
@@ -150,7 +191,7 @@ export default function CommandCenter({
         </div>
       )}
 
-      {/* Command Center Top Navigation Bar */}
+      {/* Command Center Top Navigation Bar - Editorial Style */}
       <div className="rounded-2xl bg-surface-elevated/90 border border-surface-border p-4 sm:p-5 mb-8 shadow-2xl backdrop-blur-xl flex flex-wrap items-center justify-between gap-4">
         {/* Left Branding */}
         <div className="flex items-center gap-3">
@@ -159,9 +200,9 @@ export default function CommandCenter({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-white tracking-tight">VeilOps Command Center</h2>
-              <span className="px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 font-mono text-[10px] border border-cyan-500/30">
-                LIVE
+              <h2 className="text-xl font-serif font-bold text-white tracking-tight">VeilOps Console.</h2>
+              <span className="px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 font-mono text-[10px] border border-cyan-500/30">
+                LIVE STREAM
               </span>
             </div>
             <p className="text-xs text-slate-400 font-mono">
@@ -171,7 +212,7 @@ export default function CommandCenter({
           </div>
         </div>
 
-        {/* Right Tenant Switcher & Refresh */}
+        {/* Right Tenant Switcher & Architecture Drawer */}
         <div className="flex items-center gap-2.5 font-mono text-xs">
           <button
             onClick={() => handleSwitchTenantRequest('acme', 'Acme Retail (ap-south-1)', '7100')}
@@ -181,7 +222,7 @@ export default function CommandCenter({
                 : 'bg-surface hover:bg-slate-800 border-slate-700 text-slate-400'
             }`}
           >
-            Tenant-Alpha (acme)
+            Tenant-Alpha (7100)
           </button>
 
           <button
@@ -192,7 +233,7 @@ export default function CommandCenter({
                 : 'bg-surface hover:bg-slate-800 border-slate-700 text-slate-400'
             }`}
           >
-            Tenant-Beta (initech)
+            Tenant-Beta (7101)
           </button>
 
           <button
@@ -208,6 +249,15 @@ export default function CommandCenter({
           </button>
 
           <button
+            onClick={() => setArchitectureOpen(true)}
+            className="px-3 py-1.5 rounded-lg bg-surface hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-cyan-400 transition-colors flex items-center gap-1.5"
+            title="View Architecture & Honest Limitations"
+          >
+            <Info className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">Architecture</span>
+          </button>
+
+          <button
             onClick={handleManualRefresh}
             className="p-2 rounded-lg bg-surface hover:bg-slate-800 border border-slate-700 text-slate-300 transition-colors"
             title="Refresh State"
@@ -217,7 +267,7 @@ export default function CommandCenter({
         </div>
       </div>
 
-      {/* Navigation Tabs */}
+      {/* Navigation Tabs - Editorial Low-Text Bar */}
       <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 border-b border-surface-border font-mono text-xs">
         <button
           onClick={() => setActiveTab('health')}
@@ -240,7 +290,7 @@ export default function CommandCenter({
           }`}
         >
           <Shield className="w-3.5 h-3.5" />
-          <span>Trust Boundary Visualizer</span>
+          <span>Trust Boundary</span>
         </button>
 
         <button
@@ -252,7 +302,7 @@ export default function CommandCenter({
           }`}
         >
           <Lock className="w-3.5 h-3.5" />
-          <span>Secret Scanner Vault</span>
+          <span>Secret Scanner</span>
           {collectorState.counts.secrets_seen > 0 && (
             <span className="px-1.5 py-0.2 rounded-full bg-red-500 text-white text-[10px]">
               {collectorState.counts.secrets_seen}
@@ -269,7 +319,7 @@ export default function CommandCenter({
           }`}
         >
           <FileCheck className="w-3.5 h-3.5" />
-          <span>Signal Passport & Receipts</span>
+          <span>Signal Passport Ledger</span>
         </button>
 
         <button
@@ -281,8 +331,8 @@ export default function CommandCenter({
           }`}
         >
           <AlertTriangle className="w-3.5 h-3.5" />
-          <span>Incidents & Safe Remediation</span>
-          {overview.incidents.filter((i) => i.status === 'open').length > 0 && (
+          <span>Safe Remediation</span>
+          {overview.incidents?.filter((i) => i.status === 'open').length > 0 && (
             <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-slate-950 font-bold text-[10px]">
               {overview.incidents.filter((i) => i.status === 'open').length}
             </span>
@@ -298,7 +348,7 @@ export default function CommandCenter({
           }`}
         >
           <Zap className="w-3.5 h-3.5" />
-          <span>Judge SLAs & Scenarios</span>
+          <span>SLAs &amp; Live Scenarios</span>
         </button>
 
         <button
@@ -318,9 +368,9 @@ export default function CommandCenter({
       <div>
         {activeTab === 'health' && (
           <HealthMatrix
-            sources={overview.sources}
-            collectors={overview.collectors}
-            fleetState={overview.fleet_state}
+            sources={overview.sources || []}
+            collectors={overview.collectors || []}
+            fleetState={overview.fleet_state || 'Good'}
           />
         )}
 
@@ -336,22 +386,22 @@ export default function CommandCenter({
 
         {activeTab === 'secrets' && (
           <SecretInspector
-            rawLogs={collectorState.raw}
-            secretsCount={collectorState.counts.secrets_seen}
+            rawLogs={collectorState.raw || []}
+            secretsCount={collectorState.counts.secrets_seen || 0}
           />
         )}
 
         {activeTab === 'egress' && (
           <EgressProofPanel
-            payloads={collectorState.payloads}
-            counts={collectorState.counts}
+            payloads={collectorState.payloads || []}
+            counts={collectorState.counts || {}}
           />
         )}
 
         {activeTab === 'remediation' && (
           <IncidentRemediation
-            incidents={overview.incidents}
-            auditLogs={overview.audit}
+            incidents={overview.incidents || []}
+            auditLogs={overview.audit || []}
             onApproveRemediation={handleApproveRemediation}
             onRollbackRemediation={handleRollbackRemediation}
           />
@@ -359,17 +409,24 @@ export default function CommandCenter({
 
         {activeTab === 'sla' && (
           <SlaMetricsPanel
-            timings={overview.timings}
+            timings={overview.timing || {}}
             onInjectScenario={handleScenarioInject}
+            saasLinkCut={saasLinkCut}
+            onToggleSaasLink={handleToggleSaasLink}
+            bufferedCount={collectorState.buffered || 0}
           />
         )}
 
         {activeTab === 'stream' && (
           <TelemetrySwitcher
-            activeSource={collectorState.stream.source}
+            activeSource={collectorState.stream?.source || 'simulated'}
             onSwitchSource={async (sourceConfig) => {
-              // Apply switch via collector endpoint or environment
-              console.log('Switched source to:', sourceConfig);
+              await fetch('/collector-api/stream/switch', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(sourceConfig),
+              });
+              await fetchData();
             }}
           />
         )}

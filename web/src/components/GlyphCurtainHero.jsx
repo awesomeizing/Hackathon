@@ -106,15 +106,15 @@ export default function GlyphCurtainHero({ rawLogSample, scrubbedPayloadSample, 
     <section id="trust-boundary" className="py-20 px-6 max-w-7xl mx-auto border-b border-surface-border relative">
       {/* Section Header */}
       <div className="text-center mb-12">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 font-mono text-xs mb-3">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 font-mono text-xs mb-4">
           <Filter className="w-3.5 h-3.5" />
-          <span>TIER 1 &rarr; TIER 2 CRYPTOGRAPHIC FIREWALL</span>
+          <span>CRYPTOGRAPHIC PERIMETER &middot; TIER 1 &rarr; TIER 2</span>
         </div>
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-4">
-          Trust Boundary & Telemetry Visualizer
+        <h2 className="text-4xl sm:text-5xl font-serif text-white tracking-tight mb-3">
+          Trust Boundary.
         </h2>
-        <p className="text-slate-400 max-w-2xl mx-auto text-sm sm:text-base">
-          Observe in real-time how raw strings, secrets, and private IPs are blocked inside Tier 1, while only strict allow-listed JSON leaves with a signed Signal Passport.
+        <p className="text-slate-400 max-w-xl mx-auto text-sm sm:text-base font-light">
+          Raw secrets stay inside Tier 1. Only allow-listed metadata ships with a cryptographic Signal Passport.
         </p>
       </div>
 

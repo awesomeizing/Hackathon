@@ -164,83 +164,83 @@ export default function LiquidSculptureHero({ onLaunchCommandCenter, onInspectTr
       <div className="absolute inset-0 bg-gradient-to-b from-[#060913]/30 via-transparent to-[#060913] pointer-events-none z-[2]" />
 
       {/* Hero Content */}
-      <div className="relative z-10 max-w-6xl mx-auto px-6 py-20 text-center flex flex-col items-center">
+      <div className="relative z-10 max-w-6xl mx-auto px-6 py-24 text-center flex flex-col items-center">
         {/* Top Badges */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 text-xs font-mono mb-8 backdrop-blur-md shadow-lg shadow-cyan-950/40">
+        <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 text-xs font-mono mb-8 backdrop-blur-md shadow-lg shadow-cyan-950/40">
           <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-          <span>CICADA 2026 HACKATHON · SMART OBSERVABILITY</span>
-          <span className="text-slate-500">|</span>
+          <span>CICADA 2K26</span>
+          <span className="text-slate-600">&middot;</span>
           <span className="text-emerald-400 flex items-center gap-1 font-semibold">
-            <Shield className="w-3.5 h-3.5" /> ZERO-TRUST ARCHITECTURE
+            <Shield className="w-3.5 h-3.5" /> ZERO-TRUST AIOPS
           </span>
+          <span className="text-slate-600">&middot;</span>
+          <span className="text-slate-400">VEILOPS v2.4.0</span>
         </div>
 
-        {/* Main Headline */}
-        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 max-w-4xl leading-[1.1]">
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-400">
-            VeilOps: Zero-Trust Local-First
-          </span>{' '}
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400">
-            AIOps Observability
+        {/* Main Headline - Editorial Low-Text Rhythm */}
+        <h1 className="text-5xl sm:text-7xl lg:text-8xl font-serif tracking-tight text-white mb-6 max-w-5xl leading-[1.05]">
+          Local-first AIOps.<br />
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 italic font-serif">
+            Zero raw leaks.
           </span>
         </h1>
 
         {/* Subheadline */}
-        <p className="text-lg sm:text-xl text-slate-300 max-w-2xl mb-10 leading-relaxed font-light">
-          Raw telemetry & secrets stay inside your perimeter. Only allow-listed, scrubbed metadata reaches the cloud — cryptographically sealed with the <span className="text-cyan-300 font-mono font-medium">Signal Passport</span>.
+        <p className="text-lg sm:text-xl text-slate-300/90 max-w-xl mb-10 leading-relaxed font-light tracking-wide">
+          Secrets stay local. Only verified metadata ships.
         </p>
 
         {/* CTAs */}
-        <div className="flex flex-wrap items-center justify-center gap-4 mb-14">
+        <div className="flex flex-wrap items-center justify-center gap-4 mb-16">
           <button
             onClick={onLaunchCommandCenter}
-            className="flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-bold text-base shadow-lg shadow-cyan-500/25 transition-all hover:scale-105 active:scale-95 group"
+            className="flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-bold text-sm shadow-xl shadow-cyan-500/25 transition-all hover:scale-105 active:scale-95 group"
           >
-            <Activity className="w-5 h-5 text-slate-950 group-hover:rotate-12 transition-transform" />
-            <span>Launch Live Command Center</span>
+            <Activity className="w-4 h-4 text-slate-950 group-hover:rotate-12 transition-transform" />
+            <span>Live Console</span>
             <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
           </button>
 
           <button
             onClick={onInspectTrustBoundary}
-            className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-surface-elevated/80 hover:bg-surface-elevated border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 font-mono text-sm backdrop-blur-md transition-all hover:scale-105 active:scale-95"
+            className="flex items-center gap-2 px-7 py-3.5 rounded-full bg-surface-elevated/70 hover:bg-surface-elevated border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 font-mono text-xs backdrop-blur-md transition-all hover:scale-105 active:scale-95"
           >
             <Eye className="w-4 h-4 text-cyan-400" />
-            <span>Inspect Trust Boundary</span>
+            <span>Trust Boundary</span>
           </button>
         </div>
 
-        {/* Feature Pills */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full max-w-3xl text-left font-mono text-xs">
-          <div className="p-3 rounded-lg bg-surface/80 border border-slate-800/80 backdrop-blur-sm flex items-center gap-3">
-            <Lock className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-            <div>
-              <div className="text-slate-400">Secret Redaction</div>
-              <div className="text-white font-semibold">100% On-Premise</div>
+        {/* Clean Editorial Numbered Rhythm (Inspired by Editorial Design Reference) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-5xl text-left">
+          <div className="p-5 rounded-2xl bg-surface/60 border border-slate-800/80 backdrop-blur-md transition-all hover:border-slate-700">
+            <div className="font-mono text-xs text-cyan-400 font-bold mb-2">01 &middot; PERIMETER</div>
+            <div className="text-white font-medium text-sm mb-1">Local Secret Stripping</div>
+            <div className="text-slate-400 text-xs font-light leading-relaxed">
+              API tokens, SQL queries & private IPs never leave the host.
             </div>
           </div>
 
-          <div className="p-3 rounded-lg bg-surface/80 border border-slate-800/80 backdrop-blur-sm flex items-center gap-3">
-            <Shield className="w-4 h-4 text-cyan-400 flex-shrink-0" />
-            <div>
-              <div className="text-slate-400">Integrity Proof</div>
-              <div className="text-white font-semibold">SHA-256 Passport</div>
+          <div className="p-5 rounded-2xl bg-surface/60 border border-slate-800/80 backdrop-blur-md transition-all hover:border-slate-700">
+            <div className="font-mono text-xs text-emerald-400 font-bold mb-2">02 &middot; CRYPTOGRAPHY</div>
+            <div className="text-white font-medium text-sm mb-1">Signal Passport Seal</div>
+            <div className="text-slate-400 text-xs font-light leading-relaxed">
+              Canonical JSON with SHA-256 digest verified by SaaS receipts.
             </div>
           </div>
 
-          <div className="p-3 rounded-lg bg-surface/80 border border-slate-800/80 backdrop-blur-sm flex items-center gap-3">
-            <Cpu className="w-4 h-4 text-amber-400 flex-shrink-0" />
-            <div>
-              <div className="text-slate-400">Anomaly Engine</div>
-              <div className="text-white font-semibold">EWMA (Z &ge; 3.0)</div>
+          <div className="p-5 rounded-2xl bg-surface/60 border border-slate-800/80 backdrop-blur-md transition-all hover:border-slate-700">
+            <div className="font-mono text-xs text-amber-400 font-bold mb-2">03 &middot; RESILIENCE</div>
+            <div className="text-white font-medium text-sm mb-1">SQLite WAL Outage Buffer</div>
+            <div className="text-slate-400 text-xs font-light leading-relaxed">
+              Zero loss during network drops; auto-flushes on reconnect.
             </div>
           </div>
 
-          <div className="p-3 rounded-lg bg-surface/80 border border-slate-800/80 backdrop-blur-sm flex items-center gap-3">
-            <Database className="w-4 h-4 text-purple-400 flex-shrink-0" />
-            <div>
-              <div className="text-slate-400">Tenant Residency</div>
-              <div className="text-white font-semibold">Strict 421 Boundary</div>
+          <div className="p-5 rounded-2xl bg-surface/60 border border-slate-800/80 backdrop-blur-md transition-all hover:border-slate-700">
+            <div className="font-mono text-xs text-purple-400 font-bold mb-2">04 &middot; CORRELATION</div>
+            <div className="text-white font-medium text-sm mb-1">Explainable AIOps</div>
+            <div className="text-slate-400 text-xs font-light leading-relaxed">
+              EWMA baseline anomalies unified into 1 explained incident.
             </div>
           </div>
         </div>

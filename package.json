@@ -5,6 +5,7 @@
   "description": "VeilOps: Zero-Trust Local-First AIOps Observability for CICADA 2026. Your signals cross. Your secrets stay local.",
   "engines": { "node": ">=22.13" },
   "scripts": {
+    "start": "node start.js",
     "setup": "node scripts/setup.js",
     "sim": "node scripts/sim-stream.js",
     "saas": "node saas/server.js",
@@ -12,6 +13,7 @@
     "web:dev": "npm --prefix web run dev",
     "web:build": "npm --prefix web run build",
     "verify": "node scripts/scenario.js verify",
+    "verify:rubric": "node verify-rubric.js",
     "replay": "node scripts/scenario.js replay",
     "residency": "node scripts/scenario.js residency",
     "test": "node --test test/*.test.js"

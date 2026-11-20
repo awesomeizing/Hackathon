@@ -60,8 +60,14 @@ export default function TumblerPassword({
         <span>{mode === 'tenant' ? 'ZERO-TRUST TENANT VAULT' : 'HUMAN-IN-THE-LOOP OPS GATE'}</span>
       </div>
 
-      <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
-      <p className="text-xs text-slate-400 mb-6 font-light leading-relaxed">{description}</p>
+      <h3 className="text-xl font-serif text-white mb-2">{title}</h3>
+      <p className="text-xs text-slate-400 mb-4 font-light leading-relaxed">{description}</p>
+
+      {/* Visible Demo Clearance PIN Badge for Judges */}
+      <div className="mb-5 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 font-mono text-xs">
+        <Key className="w-3.5 h-3.5 text-cyan-400" />
+        <span>Judge Demo PIN: <strong className="text-white tracking-widest">{targetCode}</strong></span>
+      </div>
 
       {/* Mechanical Tumbler Lock UI */}
       <div className="relative py-6 px-4 rounded-xl bg-[#060913]/90 border border-slate-800 shadow-inner mb-6">

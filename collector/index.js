@@ -34,6 +34,7 @@ let STREAM_HEADERS = STREAM_BEARER_TOKEN
   ? { authorization: `Bearer ${STREAM_BEARER_TOKEN}` }
   : STREAM_AUTH_HEADER_NAME ? { [STREAM_AUTH_HEADER_NAME]: STREAM_AUTH_HEADER_VALUE } : {};
 // Default label is "simulated"; the organizer label must be set explicitly so we never over-claim.
+let SAAS_LINK_CUT = false;
 let STREAM_KIND = process.env.STREAM_KIND === 'organizer' ? 'organizer' : 'simulated';
 const WINDOW_MS = Number(process.env.WINDOW_MS || 2000);
 const RAW_TTL_MIN = Number(process.env.RAW_TTL_MIN || 60);
@@ -220,6 +221,7 @@ async function sender() {
   for (;;) {
     const row = q.nextPending.get();
     if (!row) { await sleep(100); continue; }
+    if (SAAS_LINK_CUT) { markDown("SaaS link severed (outage simulation)"); await sleep(500); continue; }
     const passport = JSON.parse(row.passport);
     q.attempt.run(row.seq);
     try {
@@ -292,7 +294,7 @@ function state(rawFilter) {
       name: NAME, collector_id: COLLECTOR_ID, version: VERSION, region: cfg.region, saas_url: safeSaasOrigin, tz: cfg.tz,
       config_hash: CONFIG_HASH, policy_version: P.POLICY_VERSION, window_ms: WINDOW_MS, raw_ttl_min: RAW_TTL_MIN,
     },
-    stream, saas, buffered: q.pendingCount.get().n, counts: q.counts.get(),
+    stream, saas, link_cut: SAAS_LINK_CUT, buffered: q.pendingCount.get().n, counts: q.counts.get(),
     raw: (q.recentRaw[rawFilter] ?? q.recentRaw.logs).all().map(r => ({ ...r, hits: JSON.parse(r.hits) })),
     payloads: q.recentOutbox.all().map(rowOut),
     audit: q.recentAudit.all(),
@@ -326,6 +328,17 @@ http.createServer(async (req, res) => {
     if (req.method === 'GET' && u.pathname === '/') return send(200, fs.readFileSync(path.join(__dirname, 'ui.html')), 'text/html; charset=utf-8');
     if (req.method === 'GET' && u.pathname === '/api/state') return send(200, state(u.searchParams.get('raw')));
     if (req.method === 'GET' && u.pathname === '/api/delivery') return send(200, delivery());
+    if (req.method === 'GET' && u.pathname === '/api/saas/link') return send(200, { cut: SAAS_LINK_CUT, buffered: q.pendingCount.get().n });
+    if (req.method === 'POST' && u.pathname === '/api/saas/link') {
+      let b = ''; req.on('data', c => { b += c; });
+      req.on('end', () => {
+        let j = {}; try { j = JSON.parse(b); } catch {}
+        SAAS_LINK_CUT = Boolean(j.cut);
+        if (!SAAS_LINK_CUT) markUp();
+        send(200, { ok: true, cut: SAAS_LINK_CUT, buffered: q.pendingCount.get().n });
+      });
+      return;
+    }
     if (req.method === 'GET' && u.pathname.startsWith('/api/payload/')) {
       const row = q.payloadById.get(decodeURIComponent(u.pathname.slice('/api/payload/'.length)));
       return row ? send(200, rowOut(row)) : send(404, { error: 'not found' });

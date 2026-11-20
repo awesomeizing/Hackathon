@@ -27,8 +27,20 @@ The dashboard is upgraded with a high-end cyber-security command-center aestheti
 
 ---
 
-## ⚡ Quick Start (Node &ge; 22.13, Zero External Backend Deps)
+## ⚡ Quick Start (Single Command or Granular Services)
 
+### 🚀 1-Command Startup:
+```bash
+npm start              # Launches Simulator (7200) + SaaS Backend (8080/8443) + Local Collector (7100)
+```
+Open **[http://127.0.0.1:8080](http://127.0.0.1:8080)** to access the Cyber Command Center.
+
+### 🧪 Automated Rubric Evaluation Suite:
+```bash
+npm run verify:rubric  # Evaluates all 6 mandatory & bonus rubric gates end-to-end
+```
+
+### Granular Service Commands:
 ```bash
 npm run setup          # 1. Generate demo CA, TLS certs, tenant registries & collector keys
 npm run sim            # 2. Start fallback simulator (http://127.0.0.1:7200/stream)

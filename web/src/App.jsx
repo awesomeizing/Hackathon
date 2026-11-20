@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import LiquidSculptureHero from './components/LiquidSculptureHero';
+import CryptographicProofs from './components/CryptographicProofs';
 import GlyphCurtainHero from './components/GlyphCurtainHero';
 import CommandCenter from './components/CommandCenter';
 import { Shield, Lock, Terminal, Activity } from 'lucide-react';
@@ -73,6 +74,9 @@ export default function App() {
           onLaunchCommandCenter={scrollToCommandCenter}
           onInspectTrustBoundary={scrollToTrustBoundary}
         />
+
+        {/* Editorial Proofs Section (Inspired by Design Reference) */}
+        <CryptographicProofs />
 
         {/* Component 2: Glyph Curtain Hero (Trust Boundary) */}
         <GlyphCurtainHero />
