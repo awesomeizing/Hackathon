@@ -97,6 +97,31 @@ Judge checkpoint times are unknown (A3); map Phase 1–4 to them when announced.
 
 Changes after the freeze go here as `C1…` with reason (organizer constraint, blocker, or security/correctness defect).
 
-## 8. Evening handoff (16:25)
-Filled in at handoff time: what runs, how to start it, what Claude is doing 16:30–19:30, and the
-decisions waiting for 19:30 (organizer stream details, names, deadline).
+| C1 | 20 Nov 15:45 | Security defect | Unknown-field errors echoed the field *name* into SaaS audit (a crafted key could carry a secret). Names no longer echoed. |
+| C2 | 20 Nov 15:50 | Correctness | Cross-source "network + service" correlation dropped: without a service map it merges unrelated injections (false alarms). Same-source correlation only; stated as a limitation. |
+| C3 | 20 Nov 15:56 | Correctness defect | A hard kill lost up to one 2 s aggregation window from egress. Collector now re-aggregates unsent raw rows on start (verified: 47 rows recovered). |
+
+## 8. Evening handoff (written 20 Nov ~16:00 IST)
+
+**Status: Phase 1 and Phase 2 frozen; Phase 3 steps 1–8 implemented and working end to end on the SIMULATED stream.**
+`npm test` 12/12 pass. Start: see README (setup → sim → saas → collector).
+
+Measured on the simulated stream (one laptop; not organizer evidence):
+
+| Measure | Target | Measured |
+|---|---|---|
+| Event → dashboard render p95 | ≤ 10 s | 3.97 s (n=29) |
+| Breach → alert p95 | ≤ 15 s | 1.6 s (n=19) |
+| Collector offline detection | ≤ 60 s | 30.7 s |
+| SaaS outage ~25 s → backlog | 0 loss, 0 dup | 95 created / 95 acked / 95 received, 0 dup |
+| Duplicate resend / late record | dedup / placed by event time | `duplicate`, 0 stored / `late_records=1` |
+| Residency (eu-west tenant → ap-south) | rejected | HTTP 421, nothing stored |
+
+**During 16:30–19:30 (no team decisions needed):** code review and security review of the implementation,
+fix findings, small dashboard polish. No schema or scope changes.
+
+**Decisions waiting for 19:30:**
+1. Organizer stream URL/format/auth (A1). Without it, Phase 3 timing evidence stays "simulated".
+2. Team member names → replace R1–R4 (A5); confirm deadline and judge checkpoint times (A2, A3).
+3. Optional: import `.local/certs/ca.crt` into the demo browser to show the dashboard over HTTPS, too
+   (collector ingest already uses TLS; the dashboard is also served on loopback HTTP).

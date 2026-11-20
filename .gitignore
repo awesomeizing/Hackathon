@@ -1,0 +1,7 @@
+.local/
+collector/data/
+saas/data/
+node_modules/
+*.db
+*.db-wal
+*.db-shm

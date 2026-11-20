@@ -1,0 +1,19 @@
+{
+  "stale_after_s": 20,
+  "no_data_after_s": 60,
+  "collector_late_after_s": 15,
+  "collector_offline_after_s": 30,
+  "incident_window_s": 60,
+  "incident_resolve_after_s": 120,
+  "anomaly": { "alpha": 0.1, "warmup_points": 12, "z": 3, "z_clear": 2 },
+  "metrics": {
+    "cpu_pct":         { "good": 70,  "fair": 85,  "poor": 95,  "min_delta": 15, "min_sd": 1 },
+    "mem_pct":         { "good": 75,  "fair": 88,  "poor": 95,  "min_delta": 10, "min_sd": 1 },
+    "disk_pct":        { "good": 80,  "fair": 90,  "poor": 95,  "min_delta": 5,  "min_sd": 0.5 },
+    "latency_ms":      { "good": 80,  "fair": 150, "poor": 400, "min_delta": 40, "min_sd": 2 },
+    "packet_loss_pct": { "good": 0.5, "fair": 2,   "poor": 5,   "min_delta": 1,  "min_sd": 0.1 },
+    "bw_mbps":         { "min_delta": 200, "min_sd": 5 },
+    "service_up":      { "poor_below": 1 }
+  },
+  "auth_failures": { "good": 3, "fair": 5, "poor": 20 }
+}

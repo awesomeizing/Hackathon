@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collector · Egress Proof</title>
+<style>
+  :root { --bg:#0f1419; --panel:#161d24; --line:#26313b; --text:#e6edf3; --muted:#8b98a5; --ok:#3fb950; --warn:#d29922; --bad:#f85149; --accent:#58a6ff; --secret:#ff7b72; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; }
+  header { padding:12px 16px; border-bottom:1px solid var(--line); display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; }
+  h1 { font-size:17px; margin:0; } h2 { font-size:14px; margin:0 0 8px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .badge { padding:2px 8px; border-radius:10px; font-size:12px; font-weight:600; border:1px solid currentColor; }
+  .sim { color:var(--warn); } .org { color:var(--ok); } .up { color:var(--ok); } .down { color:var(--bad); }
+  main { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1.25fr); gap:12px; padding:12px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; min-width:0; }
+  .local { border-color: var(--secret); }
+  .banner { font-size:12px; color:var(--secret); margin-bottom:8px; }
+  .list { max-height:420px; overflow:auto; font:12px/1.4 ui-monospace, Consolas, monospace; }
+  .row { padding:4px 6px; border-bottom:1px solid var(--line); cursor:pointer; word-break:break-all; }
+  .row:hover, .row.sel { background:#1f2a35; }
+  mark { background:transparent; color:var(--secret); text-decoration: underline wavy; font-weight:700; }
+  pre { margin:0; white-space:pre-wrap; word-break:break-all; font:12px/1.4 ui-monospace, Consolas, monospace; background:#0b1015; padding:8px; border-radius:6px; border:1px solid var(--line); max-height:320px; overflow:auto; }
+  .muted { color:var(--muted); } .ok { color:var(--ok); } .bad { color:var(--bad); } .warn { color:var(--warn); }
+  button { background:#21262d; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; }
+  button:hover { border-color:var(--accent); }
+  table { border-collapse:collapse; width:100%; font-size:12px; } td, th { text-align:left; padding:3px 6px; border-bottom:1px solid var(--line); }
+  .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:8px; } @media (max-width:700px){ .grid2 { grid-template-columns:1fr; } }
+  .full { grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Signal Passport · Local Collector</h1>
+  <span id="streamBadge" class="badge"></span>
+  <span id="saasBadge" class="badge"></span>
+  <span id="meta" class="muted"></span>
+  <span style="flex:1"></span>
+  <span id="inject"></span>
+</header>
+<main>
+  <section class="local">
+    <h2>Raw events · stays local
+      <span style="float:right;text-transform:none">
+        <button onclick="rawFilter='logs';poll()">logs &amp; auth</button>
+        <button onclick="rawFilter='secrets';poll()">secrets</button>
+        <button onclick="rawFilter='all';poll()">all</button></span></h2>
+    <div class="banner">LOCAL ONLY. These lines (usernames, IPs, secrets) never leave this machine. Secrets are <mark>marked</mark>. Retention: <span id="ttl"></span> min.</div>
+    <div id="raw" class="list"></div>
+  </section>
+  <section>
+    <h2>Egress proof panel · exactly what left</h2>
+    <div class="muted" style="margin-bottom:6px">Click a raw event or a payload. ✓ = the SaaS receipt digest equals our Signal Passport digest.</div>
+    <div id="payloads" class="list" style="max-height:180px"></div>
+    <div id="detail" style="margin-top:10px"></div>
+  </section>
+  <section>
+    <h2>Pseudonymous IDs · mapping stays local</h2>
+    <table id="pseudo"></table>
+  </section>
+  <section>
+    <h2>Egress audit</h2>
+    <div id="audit" class="list" style="max-height:220px"></div>
+  </section>
+</main>
+<script>
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const t = iso => iso ? new Date(iso).toISOString().slice(11, 23) + 'Z' : '';
+let S = null, selected = null, selectedRaw = null, rawFilter = 'logs';
+
+function markSecrets(line, hits) {
+  let out = '', pos = 0;
+  for (const [s, e, label] of hits) { if (s < pos) continue; out += esc(line.slice(pos, s)) + `<mark title="${esc(label)}">${esc(line.slice(s, e))}</mark>`; pos = e; }
+  return out + esc(line.slice(pos));
+}
+async function inject(name) {
+  const r = await fetch('/api/inject/' + name, { method: 'POST', headers: { 'x-sp-ui': '1' } });
+  const j = await r.json(); if (!r.ok) alert(j.error || r.status);
+}
+async function selectPayload(id) {
+  selected = id;
+  const r = await fetch('/api/payload/' + encodeURIComponent(id));
+  if (r.ok) renderDetail(await r.json()); else document.getElementById('detail').innerHTML = '<span class="muted">payload purged or not yet built</span>';
+  render();
+}
+function renderDetail(p) {
+  const pretty = JSON.stringify(JSON.parse(p.body), null, 2);
+  const rc = p.receipt;
+  document.getElementById('detail').innerHTML = `
+    <div class="grid2">
+      <div><b>Signal Passport</b> <span class="muted">(built locally before send)</span><pre>${esc(JSON.stringify(p.passport, null, 2))}</pre></div>
+      <div><b>SaaS receipt</b> ${rc ? (p.match ? '<span class="ok">✓ digest matches</span>' : '<span class="bad">✗ digest mismatch</span>') : `<span class="warn">${esc(p.status)} · attempts ${p.attempts}</span>`}
+        <pre>${rc ? esc(JSON.stringify(rc, null, 2)) : 'not yet received — buffered locally'}</pre></div>
+      <div class="full"><b>Exact bytes sent</b> <span class="muted">(${p.bytes} B, canonical JSON, SHA-256 = passport.sha256)</span><pre>${esc(p.body)}</pre></div>
+      <div class="full"><b>Same payload, pretty-printed</b><pre>${esc(pretty)}</pre></div>
+    </div>`;
+}
+function render() {
+  if (!S) return;
+  const c = S.collector;
+  const sb = document.getElementById('streamBadge');
+  sb.className = 'badge ' + (S.stream.kind === 'organizer' ? 'org' : 'sim');
+  sb.textContent = (S.stream.kind === 'organizer' ? 'ORGANIZER STREAM' : 'SIMULATED STREAM — not organizer evidence') + (S.stream.connected ? '' : ' · disconnected');
+  const ab = document.getElementById('saasBadge');
+  ab.className = 'badge ' + (S.saas.reachable ? 'up' : 'down');
+  ab.textContent = S.saas.reachable ? `SaaS reachable · buffered ${S.buffered}` : `SaaS unreachable${S.saas.downSince ? ' since ' + t(S.saas.downSince) : ''} — buffering ${S.buffered}`;
+  document.getElementById('meta').textContent = `${c.name} · ${c.collector_id} · ${c.region} · ${c.policy_version} · cfg ${c.config_hash} · events ${S.stream.events} · secrets seen ${S.counts.secrets_seen} · acked ${S.counts.acked}`;
+  document.getElementById('ttl').textContent = c.raw_ttl_min;
+  document.getElementById('inject').innerHTML = S.stream.kind === 'simulated'
+    ? '<span class="muted">Simulator:</span> ' + ['cpu','latency','incident','bruteforce','secret','stale','clear'].map(n => `<button onclick="inject('${n}')">${n}</button>`).join(' ')
+    : '<span class="muted">Scenarios come from organizer tools</span>';
+  document.getElementById('raw').innerHTML = S.raw.map(r => `<div class="row ${selectedRaw === r.id ? 'sel' : ''}" onclick="selectedRaw=${r.id};${r.payload_id ? `selectPayload('${r.payload_id}')` : 'render()'}">
+    <span class="muted">${t(r.ts)} ${esc(r.kind)}</span> ${markSecrets(r.line, r.hits)} ${r.payload_id ? `<span class="muted">→ ${r.payload_id.slice(0, 8)}</span>` : '<span class="warn">→ next batch</span>'}</div>`).join('');
+  document.getElementById('payloads').innerHTML = S.payloads.map(p => `<div class="row ${selected === p.payload_id ? 'sel' : ''}" onclick="selectPayload('${p.payload_id}')">
+    #${p.seq} ${p.payload_id.slice(0, 8)} · ${p.passport.record_count} rec · ${p.bytes} B ·
+    ${p.status === 'acked' ? (p.match ? '<span class="ok">✓ received</span>' : '<span class="bad">✗ mismatch</span>') + (p.receipt?.status === 'duplicate' ? ' (duplicate)' : '') : p.status === 'pending' ? '<span class="warn">buffered</span>' : '<span class="bad">rejected</span>'}
+    <span class="muted">${t(p.created_at)} sha256 ${p.passport.sha256.slice(0, 12)}…</span></div>`).join('');
+  document.getElementById('pseudo').innerHTML = '<tr><th>host (local)</th><th>sent as</th></tr>' + S.pseudonyms.map(p => `<tr><td>${esc(p.host)}</td><td>${esc(p.source_id)}</td></tr>`).join('');
+  document.getElementById('audit').innerHTML = S.audit.map(a => `<div class="row"><span class="muted">${t(a.at)}</span> <b>${esc(a.event)}</b> ${esc((a.payload_id || '').slice(0, 8))} <span class="muted">${esc(a.detail)}</span></div>`).join('');
+}
+async function poll() {
+  try { S = await (await fetch('/api/state?raw=' + rawFilter)).json(); render(); if (!selected && S.payloads[0]) selectPayload(S.payloads[0].payload_id); }
+  catch (e) { document.getElementById('meta').textContent = 'collector UI unreachable: ' + e.message; }
+}
+poll(); setInterval(poll, 1000);
+</script>
+</body>
+</html>

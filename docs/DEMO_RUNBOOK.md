@@ -31,10 +31,13 @@ Screens: left = collector (egress proof panel), right = SaaS dashboard (tenant `
 
 | Measure | Target | How | Result | Stream |
 |---|---|---|---|---|
-| Event → dashboard p95 | ≤ 10 s | stream `event_time` vs dashboard render time (timing panel) | _tbd_ | _tbd_ |
-| Breach → alert | ≤ 15 s | injected spike `event_time` vs alert `created_at` | _tbd_ | _tbd_ |
-| Offline detection | ≤ 60 s | last heartbeat vs status change to Poor | _tbd_ | _tbd_ |
-| Backlog after reconnect | 0 loss, 0 dup | `npm run verify` | _tbd_ | _tbd_ |
+| Event → dashboard p95 | ≤ 10 s | stream `event_time` vs dashboard render time (timing panel) | 3.97 s (dry run) | simulated — redo on organizer |
+| Breach → alert | ≤ 15 s | injected spike `event_time` vs alert `created_at` | 1.6 s (dry run) | simulated — redo on organizer |
+| Offline detection | ≤ 60 s | last heartbeat vs status change to Poor | 30.7 s (dry run) | simulated — redo on organizer |
+| Backlog after reconnect | 0 loss, 0 dup | `npm run verify` | 95/95/95, 0 dup (dry run) | simulated — redo on organizer |
+
+Start each judged run on fresh data (stop all, delete `collector/data` and `saas/data`, restart) so earlier dry-run
+traffic does not mix into `verify`. Note: run `verify` before `replay`, or the replay tool's own payloads are listed as excluded.
 
 ## Judge answers (short)
 - **What leaves?** Only `signal-passport/1` fields: enums, numbers, UTC times, pseudonymous IDs. No free text.
