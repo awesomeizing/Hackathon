@@ -10,6 +10,9 @@ import {
   Wifi,
   Globe,
   RotateCcw,
+  Clock,
+  Copy,
+  PowerOff,
 } from 'lucide-react';
 
 /**
@@ -72,6 +75,20 @@ export default function FloatingDock({
       action: () => onInjectScenario?.('stale'),
     },
     {
+      id: 'late',
+      label: 'Late Event (45 s)',
+      icon: Clock,
+      color: 'hover:text-yellow-400 hover:border-yellow-500/40',
+      action: () => onInjectScenario?.('late'),
+    },
+    {
+      id: 'duplicate',
+      label: 'Duplicate Replay',
+      icon: Copy,
+      color: 'hover:text-violet-400 hover:border-violet-500/40',
+      action: () => onInjectScenario?.('duplicate'),
+    },
+    {
       id: 'outage',
       label: saasLinkCut ? 'Reconnect Link' : 'Cut SaaS Link',
       icon: saasLinkCut ? Wifi : WifiOff,
@@ -94,6 +111,13 @@ export default function FloatingDock({
       color: 'hover:text-emerald-400 hover:border-emerald-500/40',
       action: () => onInjectScenario?.('clear'),
     },
+    {
+      id: 'source-outage',
+      label: 'Source Outage (20 s)',
+      icon: PowerOff,
+      color: 'hover:text-orange-500 hover:border-orange-600/40',
+      action: () => onInjectScenario?.('outage'),
+    },
   ];
 
   const handleClick = async (act) => {
@@ -115,7 +139,7 @@ export default function FloatingDock({
           ) : streamKind === 'organizer' ? (
             <span className="text-emerald-400 font-bold">ORGANIZER — inject disabled</span>
           ) : (
-            <span className="text-amber-400 font-bold">SIMULATED fault injection</span>
+            <span className="text-amber-400 font-bold">TEAM-SIMULATED fault injection</span>
           )}
         </div>
 

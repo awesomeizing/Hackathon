@@ -234,9 +234,9 @@ export default function CommandCenter({
                 ORGANIZER STREAM
               </span>
             ) : (
-              <span className="px-2.5 py-0.5 rounded-full bg-amber-950/60 border border-amber-500/40 text-amber-300 font-mono text-[10px] flex items-center gap-1.5" title="Running on simulated local stream — not organizer evidence">
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-950/60 border border-amber-500/40 text-amber-300 font-mono text-[10px] flex items-center gap-1.5" title="Running on team-generated synthetic stream — not organizer evidence">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                SIMULATED
+                TEAM-SIMULATED
               </span>
             )}
             {overview.supabase?.configured ? (

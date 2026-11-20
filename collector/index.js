@@ -33,9 +33,9 @@ if (STREAM_AUTH_HEADER_NAME && (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(STREAM_AUT
 let STREAM_HEADERS = STREAM_BEARER_TOKEN
   ? { authorization: `Bearer ${STREAM_BEARER_TOKEN}` }
   : STREAM_AUTH_HEADER_NAME ? { [STREAM_AUTH_HEADER_NAME]: STREAM_AUTH_HEADER_VALUE } : {};
-// Default label is "simulated"; the organizer label must be set explicitly so we never over-claim.
+// Default label is "team-simulated"; the organizer label must be set explicitly so we never over-claim.
 let SAAS_LINK_CUT = false;
-let STREAM_KIND = process.env.STREAM_KIND === 'organizer' ? 'organizer' : 'simulated';
+let STREAM_KIND = process.env.STREAM_KIND === 'organizer' ? 'organizer' : 'team-simulated';
 const WINDOW_MS = Number(process.env.WINDOW_MS || 2000);
 const RAW_TTL_MIN = Number(process.env.RAW_TTL_MIN || 60);
 const UI_PORT = Number(process.env.UI_PORT || cfg.ui_port || 7100);
@@ -374,7 +374,7 @@ http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && u.pathname.startsWith('/api/inject/')) {
       if (req.headers['x-sp-ui'] !== '1') return send(403, { error: 'missing x-sp-ui header' });
-      if (STREAM_KIND !== 'simulated' || !STREAM_URL) return send(409, { error: 'injection is for the simulator; use organizer tools for the organizer stream' });
+      if (!['simulated', 'team-simulated'].includes(STREAM_KIND) || !STREAM_URL) return send(409, { error: 'injection is for the simulator; use organizer tools for the organizer stream' });
       const r = await injectSim(u.pathname.slice('/api/inject/'.length));
       return send(r.status, JSON.parse(r.body || '{}'));
     }
