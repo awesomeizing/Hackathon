@@ -5,3 +5,9 @@ node_modules/
 *.db
 *.db-wal
 *.db-shm
+
+# Never commit actual env files with real credentials
+.env
+.env.local
+web/.env
+web/.env.local
