@@ -211,11 +211,28 @@ export default function CommandCenter({
       {/* Command Center Top Navigation Bar */}
       <div className="rounded-3xl bg-[#090c16]/90 border border-white/[0.08] p-6 mb-6 shadow-2xl flex flex-wrap items-center justify-between gap-6 backdrop-blur-xl">
         <div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h2 className="text-3xl font-serif text-white tracking-tight">Console.</h2>
             <span className="px-2.5 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 font-mono text-[10px]">
               LIVE
             </span>
+            {/* Stream source badge — driven by actual collector state */}
+            {!collectorState.stream?.connected ? (
+              <span className="px-2.5 py-0.5 rounded-full bg-red-950/60 border border-red-500/40 text-red-400 font-mono text-[10px] flex items-center gap-1.5" title="Collector stream is disconnected">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                DISCONNECTED
+              </span>
+            ) : collectorState.stream?.kind === 'organizer' ? (
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 font-mono text-[10px] flex items-center gap-1.5" title="Receiving live organizer stream">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                ORGANIZER STREAM
+              </span>
+            ) : (
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-950/60 border border-amber-500/40 text-amber-300 font-mono text-[10px] flex items-center gap-1.5" title="Running on simulated local stream — not organizer evidence">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                SIMULATED
+              </span>
+            )}
             {overview.supabase?.configured ? (
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 font-mono text-[10px] flex items-center gap-1.5" title="Connected to Supabase PostgreSQL & Realtime">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -231,6 +248,22 @@ export default function CommandCenter({
           <p className="text-xs text-neutral-400 font-mono mt-1">
             Tenant: <span className="text-white font-medium">{tenantName}</span> &middot; Region: ap-south-1
           </p>
+          {/* Real-time pipeline counts */}
+          <div className="flex flex-wrap items-center gap-3 mt-1.5 font-mono text-[10px]">
+            <span className="text-neutral-500">acked <span className="text-emerald-400 font-bold">{collectorState.counts?.acked ?? '—'}</span></span>
+            <span className="text-neutral-600">·</span>
+            <span className="text-neutral-500">pending <span className="text-amber-400 font-bold">{collectorState.counts?.pending ?? collectorState.buffered ?? '—'}</span></span>
+            <span className="text-neutral-600">·</span>
+            <span className="text-neutral-500">rejected <span className="text-red-400 font-bold">{collectorState.counts?.rejected ?? '—'}</span></span>
+            <span className="text-neutral-600">·</span>
+            <span className="text-neutral-500">buffered <span className="text-cyan-400 font-bold">{collectorState.buffered ?? '—'}</span></span>
+            {collectorState.counts?.secrets_seen > 0 && (
+              <>
+                <span className="text-neutral-600">·</span>
+                <span className="text-neutral-500">secrets <span className="text-rose-400 font-bold">{collectorState.counts.secrets_seen}</span></span>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Right Tenant Switcher & Architecture Drawer */}
@@ -463,12 +496,14 @@ export default function CommandCenter({
         )}
       </div>
 
-      {/* 21st.dev Floating Action Dock for Scenarios */}
+      {/* Floating Action Dock — simulated fault injection only */}
       <FloatingDock
         onInjectScenario={handleScenarioInject}
         saasLinkCut={saasLinkCut}
         onToggleSaasLink={handleToggleSaasLink}
         onRunResidency={handleRunResidency}
+        streamKind={collectorState.stream?.kind}
+        streamConnected={collectorState.stream?.connected}
       />
     </div>
   );

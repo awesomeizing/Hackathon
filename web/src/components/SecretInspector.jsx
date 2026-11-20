@@ -122,7 +122,9 @@ export default function SecretInspector({ rawLogs = [], secretsCount = 0 }) {
 
         <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 flex items-center justify-between">
           <span className="text-neutral-400">Cloud Leakage:</span>
-          <span className="text-emerald-400 font-bold text-sm">0 Bytes (100% Trapped)</span>
+          <span className="text-emerald-400 font-bold text-sm">
+            {secretsCount > 0 ? '0 Bytes (all trapped locally)' : 'No secrets in window'}
+          </span>
         </div>
 
         <div className="p-3.5 rounded-xl bg-cyan-950/30 border border-cyan-500/30 flex items-center justify-between">
@@ -171,7 +173,9 @@ export default function SecretInspector({ rawLogs = [], secretsCount = 0 }) {
       <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
         {filteredLogs.length === 0 ? (
           <div className="p-8 rounded-xl bg-black/40 border border-dashed border-white/10 text-center font-mono text-xs text-neutral-500">
-            No secrets captured yet. Inject a secret leakage scenario below to test the perimeter trap.
+            {selectedFilter === 'secrets'
+              ? "No secrets in the current raw window. Use the 'secret' scenario in the dock to inject a test credential and verify interception."
+              : 'No records match this filter. Switch to "All Stream Records" to see raw telemetry.'}
           </div>
         ) : (
           filteredLogs.map((log, idx) => (

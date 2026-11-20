@@ -120,7 +120,8 @@ export default function IncidentRemediation({
         <div className="space-y-4">
           {incidents.length === 0 ? (
             <div className="p-8 rounded-lg bg-surface-elevated/30 border border-dashed border-slate-800 text-center font-mono text-xs text-slate-500">
-              No active incidents detected. All source baselines are normal.
+              <div className="mb-2">No active incidents detected. All source baselines are normal.</div>
+              <div className="text-slate-600">Use the <span className="text-amber-400 font-semibold">'incident'</span> scenario in the dock to trigger a correlated incident and test the remediation gate.</div>
             </div>
           ) : (
             incidents.map((inc) => {

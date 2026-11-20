@@ -9,15 +9,22 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = __dirname;
-const env = { ...process.env, SP_STATE_DIR: process.env.SP_STATE_DIR || '.local' };
+// Do NOT override SP_STATE_DIR with a relative path.
+// Use the shared/state-dir default (platform-aware absolute path) so that
+// setup, SaaS, and collector all resolve the same directory regardless of cwd.
+const env = { ...process.env };
+// SP_STATE_DIR is intentionally left unset here so the platform-aware default
+// in shared/state-dir.js is used. Setting it to a relative path would break
+// any process whose cwd differs from ROOT.
 
 console.log('======================================================================');
 console.log(' VeilOps v2.4.0: Zero-Trust Local-First AIOps Observability ');
 console.log(' Starting End-to-End System (Simulator + Tier 1 Collector + Tier 2 SaaS)');
 console.log('======================================================================');
 
-// Ensure setup exists
-const certPath = path.join(ROOT, env.SP_STATE_DIR, 'certs', 'ca.crt');
+// Ensure setup exists: resolve STATE_DIR the same way shared/state-dir does.
+const { STATE_DIR } = require('./shared/state-dir');
+const certPath = path.join(STATE_DIR, 'certs', 'ca.crt');
 if (!fs.existsSync(certPath)) {
   console.log('[VeilOps] Initializing cryptographic certificates and tenant stores...');
   execFileSync(process.execPath, [path.join(ROOT, 'scripts', 'setup.js')], {

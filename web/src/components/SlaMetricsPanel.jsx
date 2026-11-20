@@ -21,23 +21,29 @@ export default function SlaMetricsPanel({
     try {
       if (onRunVerify) {
         const res = await onRunVerify();
-        setScenarioOutput(res.output || 'Verify executed: PASS — Zero loss, zero duplicates.');
+        setScenarioOutput(res.output || 'Verify complete — see counts above.');
       } else {
         const local = await fetch('/collector-api/delivery').then((r) => r.json());
+        const created = local.created?.length ?? 0;
+        const acked = local.acked?.length ?? 0;
+        const pending = local.pending?.length ?? 0;
+        const allAcked = created > 0 && created === acked && pending === 0;
         setScenarioOutput(
-          `PASS — Zero loss, zero duplicates. Created: ${local.created?.length || 12}, Acked: ${
-            local.acked?.length || 12
-          }, Buffered: ${local.pending?.length || 0}`
+          allAcked
+            ? `PASS — Zero loss, zero duplicates. Sent: ${created}, Acked: ${acked}, Buffered: ${pending}`
+            : `Status — Sent: ${created}, Acked: ${acked}, Buffered: ${pending}${created === 0 ? ' (no data yet — waiting for stream)' : ''}`
         );
+        if (allAcked) {
+          confetti({
+            particleCount: 80,
+            spread: 60,
+            origin: { y: 0.7 },
+            colors: ['#06b6d4', '#10b981', '#3b82f6'],
+          });
+        }
       }
-      confetti({
-        particleCount: 80,
-        spread: 60,
-        origin: { y: 0.7 },
-        colors: ['#06b6d4', '#10b981', '#3b82f6'],
-      });
     } catch (e) {
-      setScenarioOutput(`Verify executed: PASS — Zero loss, zero duplicates.`);
+      setScenarioOutput(`Verify error: ${e.message || 'Could not reach collector API'}`);
     } finally {
       setInjecting(null);
     }
@@ -49,9 +55,9 @@ export default function SlaMetricsPanel({
       if (onRunReplay) {
         await onRunReplay();
       }
-      setScenarioOutput('Replay executed: Idempotent duplicate delivery ignored (0 dup). Late record placed by event-time.');
+      setScenarioOutput('Replay submitted — idempotency result will appear in audit log above.');
     } catch (e) {
-      setScenarioOutput('Replay executed: Idempotency verified');
+      setScenarioOutput(`Replay error: ${e.message || 'Could not reach collector API'}`);
     } finally {
       setInjecting(null);
     }
@@ -67,7 +73,7 @@ export default function SlaMetricsPanel({
         setScenarioOutput('Tenant Globex EU (home: eu-west) -> ingest ap-south: HTTP 421 Misdirected Request. Nothing stored.');
       }
     } catch (e) {
-      setScenarioOutput(`Residency check: HTTP 421 Boundary enforced`);
+      setScenarioOutput(`Residency error: ${e.message || 'Could not complete test'}`);
     } finally {
       setInjecting(null);
     }
@@ -77,11 +83,16 @@ export default function SlaMetricsPanel({
     ? `${(timings.render.p95 / 1000).toFixed(2)}s`
     : timings.ingest?.p95
     ? `${(timings.ingest.p95 / 1000).toFixed(2)}s`
-    : '1.24s';
+    : null;
+  const renderPass = renderP95 !== null && parseFloat(renderP95) <= 10;
 
-  const alertP95 = timings.alert?.p95
-    ? `${(timings.alert.p95 / 1000).toFixed(2)}s`
-    : '0.88s';
+  const alertP95Raw = timings.alert?.p95;
+  const alertP95 = alertP95Raw ? `${(alertP95Raw / 1000).toFixed(2)}s` : null;
+  const alertPass = alertP95 !== null && parseFloat(alertP95) <= 15;
+
+  // Offline detection: config-driven threshold from thresholds.json (default 60 s).
+  // The actual measured value is not surfaced yet — show the configured limit only.
+  const offlineLimit = timings.offline?.p95 ? `${(timings.offline.p95 / 1000).toFixed(1)}s` : null;
 
   return (
     <div className="space-y-6">
@@ -93,7 +104,7 @@ export default function SlaMetricsPanel({
             <span>CICADA 2026 Judge SLA Rubric & Measured Latencies</span>
           </div>
           <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 font-bold">
-            ALL SLAS MET &middot; TIMESTAMP BACKED
+            {renderP95 && alertP95 ? 'MEASURED · TIMESTAMP BACKED' : 'WAITING FOR DATA'}
           </span>
         </div>
 
@@ -109,11 +120,13 @@ export default function SlaMetricsPanel({
               EVENT → RENDER P95
             </div>
             <div className="text-2xl font-bold text-emerald-400 font-mono">
-              {renderP95}
+              {renderP95 ?? '—'}
             </div>
             <div className="text-[10px] text-neutral-500 mt-2 flex items-center justify-between">
               <span>Target ≤ 10.0s</span>
-              <span className="text-emerald-400 font-bold">PASS</span>
+              {renderP95
+                ? <span className={renderPass ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>{renderPass ? 'PASS' : 'FAIL'}</span>
+                : <span className="text-neutral-500">not measured yet</span>}
             </div>
           </SpotlightCard>
 
@@ -127,11 +140,13 @@ export default function SlaMetricsPanel({
               BREACH → ALERT P95
             </div>
             <div className="text-2xl font-bold text-emerald-400 font-mono">
-              {alertP95}
+              {alertP95 ?? '—'}
             </div>
             <div className="text-[10px] text-neutral-500 mt-2 flex items-center justify-between">
               <span>Target ≤ 15.0s</span>
-              <span className="text-emerald-400 font-bold">PASS</span>
+              {alertP95
+                ? <span className={alertPass ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>{alertPass ? 'PASS' : 'FAIL'}</span>
+                : <span className="text-neutral-500">not measured yet</span>}
             </div>
           </SpotlightCard>
 
@@ -145,11 +160,13 @@ export default function SlaMetricsPanel({
               OFFLINE DETECTION
             </div>
             <div className="text-2xl font-bold text-cyan-400 font-mono">
-              32.0s
+              {offlineLimit ?? '≤ 60s'}
             </div>
             <div className="text-[10px] text-neutral-500 mt-2 flex items-center justify-between">
               <span>Target ≤ 60.0s</span>
-              <span className="text-cyan-400 font-bold">PASS</span>
+              {offlineLimit
+                ? <span className={parseFloat(offlineLimit) <= 60 ? 'text-cyan-400 font-bold' : 'text-amber-400 font-bold'}>{parseFloat(offlineLimit) <= 60 ? 'PASS' : 'FAIL'}</span>
+                : <span className="text-neutral-500">configured threshold</span>}
             </div>
           </SpotlightCard>
 
@@ -167,7 +184,7 @@ export default function SlaMetricsPanel({
             </div>
             <div className="text-[10px] text-neutral-500 mt-2 flex items-center justify-between">
               <span>Idempotent WAL</span>
-              <span className="text-purple-400 font-bold">PASS</span>
+              <span className="text-neutral-500">run verify →</span>
             </div>
           </SpotlightCard>
         </div>

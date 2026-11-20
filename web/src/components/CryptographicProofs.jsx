@@ -28,8 +28,8 @@ export default function CryptographicProofs() {
       id: '04',
       title: 'The Latency Ledger',
       category: 'Event-Time Sync',
-      metric: 'p95 \u2264 1.84s',
-      description: 'Computed directly from stream event_timestamp_utc to dashboard render, well beneath the 10.0s judge SLA target.',
+      metric: 'p95 ≤ 10.0s SLA',
+      description: 'Event timestamp to dashboard render is tracked continuously. The SLA target is ≤ 10 s p95. Live measurements are shown in the SLA Metrics tab of the Console.',
     },
   ];
 

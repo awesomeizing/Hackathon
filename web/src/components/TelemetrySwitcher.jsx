@@ -94,7 +94,7 @@ export default function TelemetrySwitcher({ activeSource = 'simulated', onSwitch
             {sourceType === 'organizer' && <Check className="w-3.5 h-3.5 text-emerald-400" />}
           </div>
           <p className="text-[11px] text-slate-400">
-            HTTP NDJSON / SSE / WebSocket endpoint provided by hackathon jury.
+            HTTP NDJSON or SSE endpoint provided by hackathon jury. WebSocket is not supported.
           </p>
         </div>
 
@@ -124,7 +124,7 @@ export default function TelemetrySwitcher({ activeSource = 'simulated', onSwitch
       {sourceType === 'organizer' && (
         <div className="p-4 rounded-lg bg-[#060913]/90 border border-emerald-950/60 mb-5 space-y-3 font-mono text-xs">
           <div>
-            <label className="block text-slate-400 mb-1">Organizer Stream URL (HTTP/S or WS):</label>
+            <label className="block text-slate-400 mb-1">Organizer Stream URL (HTTP or HTTPS; NDJSON or SSE):</label>
             <input
               type="text"
               value={organizerUrl}

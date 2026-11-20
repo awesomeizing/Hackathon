@@ -22,6 +22,8 @@ export default function FloatingDock({
   saasLinkCut = false,
   onToggleSaasLink,
   onRunResidency,
+  streamKind = 'simulated',
+  streamConnected = true,
 }) {
   const [activeBtn, setActiveBtn] = useState(null);
   const [tooltip, setTooltip] = useState('');
@@ -63,6 +65,13 @@ export default function FloatingDock({
       action: () => onInjectScenario?.('incident'),
     },
     {
+      id: 'stale',
+      label: 'Stale Source',
+      icon: Radio,
+      color: 'hover:text-orange-400 hover:border-orange-500/40',
+      action: () => onInjectScenario?.('stale'),
+    },
+    {
       id: 'outage',
       label: saasLinkCut ? 'Reconnect Link' : 'Cut SaaS Link',
       icon: saasLinkCut ? Wifi : WifiOff,
@@ -99,26 +108,36 @@ export default function FloatingDock({
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
       <div className="flex items-center gap-1.5 p-2 rounded-full bg-[#080b14]/90 border border-white/10 shadow-2xl backdrop-blur-2xl">
-        {/* Dock Label */}
-        <div className="px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-neutral-400 font-bold border-r border-white/10 hidden sm:block">
-          Fault Injection
+        {/* Dock Label — shows stream mode */}
+        <div className="px-3 py-1 font-mono text-[10px] uppercase tracking-wider border-r border-white/10 hidden sm:flex items-center gap-1.5">
+          {!streamConnected ? (
+            <span className="text-red-400 font-bold">DISCONNECTED</span>
+          ) : streamKind === 'organizer' ? (
+            <span className="text-emerald-400 font-bold">ORGANIZER — inject disabled</span>
+          ) : (
+            <span className="text-amber-400 font-bold">SIMULATED fault injection</span>
+          )}
         </div>
 
-        {/* Buttons */}
+        {/* Buttons — injection scenarios disabled when on organizer stream */}
         {actions.map((act) => {
           const Icon = act.icon;
           const isActive = activeBtn === act.id;
+          // Disable fault injection buttons when stream is organizer (not simulated)
+          const isInjectAction = !['outage', 'residency'].includes(act.id);
+          const disabled = isInjectAction && streamKind === 'organizer' && streamConnected;
 
           return (
             <button
               key={act.id}
-              onClick={() => handleClick(act)}
+              onClick={() => !disabled && handleClick(act)}
               onMouseEnter={() => setTooltip(act.label)}
               onMouseLeave={() => setTooltip('')}
-              className={`relative p-2.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-neutral-300 transition-all duration-200 active:scale-95 ${act.color} ${
-                isActive ? 'scale-110 bg-white/20' : ''
-              }`}
-              title={act.label}
+              className={`relative p-2.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-neutral-300 transition-all duration-200 active:scale-95 ${
+                disabled ? 'opacity-30 cursor-not-allowed' : act.color
+              } ${isActive ? 'scale-110 bg-white/20' : ''}`}
+              title={disabled ? `${act.label} (disabled on organizer stream)` : act.label}
+              aria-disabled={disabled}
             >
               <Icon className="w-4 h-4" />
             </button>

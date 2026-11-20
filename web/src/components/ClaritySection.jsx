@@ -24,9 +24,10 @@ export default function ClaritySection() {
 
   return (
     <section className="py-24 px-6 max-w-7xl mx-auto border-b border-white/[0.08] text-center">
-      <h2 className="text-5xl sm:text-6xl font-serif italic text-white tracking-tight mb-14">
+      <h2 className="text-5xl sm:text-6xl font-serif italic text-white tracking-tight mb-4">
         Clarity.
       </h2>
+      <p className="text-xs font-mono text-neutral-600 mb-10 italic">Illustrative scenarios — not real user testimonials.</p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
         {reviews.map((rev, idx) => (

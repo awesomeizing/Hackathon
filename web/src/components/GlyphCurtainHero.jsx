@@ -53,30 +53,35 @@ export default function GlyphCurtainHero({ rawLogSample, scrubbedPayloadSample, 
     };
   }, []);
 
+  // Determine whether we have live data or are showing illustrative fallback
+  const hasLiveRaw = !!rawLogSample;
+  const hasLiveScrubbed = !!scrubbedPayloadSample;
+  const hasLivePassport = !!passportSample;
+
   const defaultRawLog = rawLogSample || {
-    raw_id: 'raw-9941',
-    hostname: 'prod-db-mumbai-01.internal',
-    source_ip: '10.24.18.92',
-    raw_log: 'Failed password for admin from 192.168.1.45 port 54211 ssh2 | token=sk-live-98a7sd98a7sd | db_pass=S3cr3t-Pa55! aws_key=AKIAIOSFODNN7EXAMPLE',
+    raw_id: 'raw-example',
+    hostname: 'example-host.internal',
+    source_ip: '10.x.x.x',
+    raw_log: 'Failed password for admin | token=sk-live-XXXXX | db_pass=REDACTED aws_key=AKIAEXAMPLE',
   };
 
   const defaultScrubbed = scrubbedPayloadSample || {
-    payload_id: '90a18372-79a8-40e1-97fc-82e622eae122',
+    payload_id: 'example-payload-id',
     tenant_id: 'acme',
-    collector_id: 'col-2b2ccb0ac2',
+    collector_id: 'col-example',
     region: 'ap-south-1',
     event_timestamp_utc: new Date().toISOString(),
     source_timezone: 'Asia/Kolkata',
-    pseudonymous_source_id: 'src-76151fa033',
-    metrics: { cpu_pct: 88.4, memory_pct: 76.2, disk_pct: 61.0, latency_ms: 145 },
-    security_summary: { event_category: 'auth_anomaly', failed_login_count_1m: 18, secrets_redacted_count: 3 },
-    health_state: 'Poor',
-    health_reason: 'Latency (145ms > 100ms) elevated',
+    pseudonymous_source_id: 'src-example',
+    metrics: { cpu_pct: null, memory_pct: null, disk_pct: null, latency_ms: null },
+    security_summary: { event_category: 'example', failed_login_count_1m: 0, secrets_redacted_count: 0 },
+    health_state: 'Unknown',
+    health_reason: '— inject a scenario to see live data —',
   };
 
   const defaultPassport = passportSample || {
-    sha256: '0cc5a837d8a9bbaaa3a6e047fd090001d8dbe1500cb1fc9ae909e4e86228cc68',
-    verified_by_saas: true,
+    sha256: '— no live data yet — inject a secret scenario to see real digest —',
+    verified_by_saas: false,
   };
 
   return (
@@ -89,6 +94,22 @@ export default function GlyphCurtainHero({ rawLogSample, scrubbedPayloadSample, 
         <p className="text-xs sm:text-sm text-neutral-400 font-light max-w-md leading-relaxed">
           Raw credentials stay trapped in Tier 1. Only allow-listed schema departs with a signed Signal Passport.
         </p>
+        {/* Illustrative vs live indicator */}
+        {!hasLiveRaw && !hasLiveScrubbed && !hasLivePassport && (
+          <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-950/50 border border-amber-500/30 font-mono text-[11px] text-amber-300">
+            <span className="font-bold">⚠ ILLUSTRATIVE EXAMPLE</span>
+            <span className="text-amber-400/60">—</span>
+            <span>inject a 'secret' scenario in the dock to see live data flow through this boundary</span>
+          </div>
+        )}
+        {(hasLiveRaw || hasLiveScrubbed || hasLivePassport) && (
+          <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/50 border border-emerald-500/30 font-mono text-[11px] text-emerald-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-bold">LIVE DATA</span>
+            <span className="text-emerald-400/60">—</span>
+            <span>showing actual payload from collector pipeline</span>
+          </div>
+        )}
       </div>
 
       {/* Main Firewall Container */}
@@ -201,9 +222,19 @@ export default function GlyphCurtainHero({ rawLogSample, scrubbedPayloadSample, 
                     <Hash className="w-3.5 h-3.5 text-cyan-400" />
                     Signal Passport (SHA-256):
                   </span>
-                  <span className="text-emerald-400 text-[11px] font-semibold">
-                    MATCHED BY SAAS
-                  </span>
+                  {hasLivePassport && defaultPassport.verified_by_saas ? (
+                    <span className="text-emerald-400 text-[11px] font-semibold">
+                      MATCHED BY SAAS
+                    </span>
+                  ) : hasLivePassport ? (
+                    <span className="text-amber-400 text-[11px] font-semibold">
+                      PENDING RECEIPT
+                    </span>
+                  ) : (
+                    <span className="text-neutral-500 text-[11px]">
+                      ILLUSTRATIVE
+                    </span>
+                  )}
                 </div>
                 <div className="text-[11px] text-neutral-400 truncate bg-black/60 p-2 rounded-lg font-mono">
                   {defaultPassport.sha256}

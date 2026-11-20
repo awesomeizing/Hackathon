@@ -1,13 +1,22 @@
 'use strict';
 /**
- * CICADA 2026 End-to-End Rubric Verification Suite
- * 
- * Verifies all 6 mandatory gates and bonus tie-breakers:
+ * VeilOps Code-Path Verification Suite
+ *
+ * IMPORTANT: These are SIMULATED CODE-PATH CHECKS using synthetic in-memory
+ * data and hard-coded timestamps (T0 = 2026-11-21T02:00:00Z).  They verify
+ * that the pipeline logic (scrubbing, dedup, sorting, alerting, remediation)
+ * behaves correctly in isolation.  They do NOT:
+ *   - measure live end-to-end latency from a real organizer stream
+ *   - confirm that the collector is running and sending real payloads
+ *   - certify SLA compliance for the organizer-stream criterion
+ *   - substitute for the judges' live evaluation environment
+ *
+ * Gates covered (simulated):
  *  1. Secret stripped before Tier 2 and absent in Tier 2 storage
- *  2. Tenant isolation & region residency (HTTP 403 / 421)
+ *  2. Tenant isolation & region residency logic (HTTP 421 enforcement)
  *  3. Out-of-order events sorted by event_timestamp_utc
  *  4. Duplicate payload_id retries produce 0 duplicates (Sent == Unique Received)
- *  5. Sub-second ingest-to-stream latency (< 10s SLA) & offline downgrade
+ *  5. Ingest timing code-path check (< 10s SLA target, synthetic render timestamp)
  *  6. Multi-signal correlation merging related alerts into 1 incident + safe remediation
  */
 
@@ -48,7 +57,11 @@ function fail(desc, err) {
 
 async function runRubricVerification() {
   console.log(`${BOLD}======================================================================${RESET}`);
-  console.log(`${BOLD} VeilOps v2.4.0 · CICADA 2K26 End-to-End Rubric Verification Suite ${RESET}`);
+  console.log(`${BOLD} VeilOps v2.4.0 · Simulated Code-Path Verification Suite              ${RESET}`);
+  console.log(`${BOLD}======================================================================${RESET}`);
+  console.log(`${YELLOW}${BOLD} NOTE: All checks below use synthetic in-memory data with hard-coded  ${RESET}`);
+  console.log(`${YELLOW}${BOLD} timestamps. These are code-path unit tests, NOT live SLA evidence.   ${RESET}`);
+  console.log(`${YELLOW}${BOLD} Organizer-stream criteria require a running live stack + jury stream. ${RESET}`);
   console.log(`${BOLD}======================================================================${RESET}`);
 
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'veilops-rubric-'));
@@ -59,7 +72,7 @@ async function runRubricVerification() {
   // -------------------------------------------------------------------------
   // 1. PRIVACY PIPELINE: Secrets Stripped & Absent in Tier 2 Storage
   // -------------------------------------------------------------------------
-  step('1. Privacy Pipeline: Secret Stripping & Zero Tier 2 Leakage');
+  step('1. [SIMULATED] Privacy Pipeline: Secret Stripping & Zero Tier 2 Leakage');
   try {
     const rawSecretLog = JSON.stringify({
       ts: '2026-11-21T02:00:00.000Z',
@@ -113,7 +126,7 @@ async function runRubricVerification() {
       }
     }
 
-    pass('Secrets intercepted at Tier 1 perimeter and 100% absent in Tier 2 storage', `Scrubbed ${secretsFound.length} secrets; 0 leaks`);
+    pass('[SIMULATED] Scrubber correctly intercepted secrets; no leakage into synthetic Tier 2 store', `Scrubbed ${secretsFound.length} secrets in synthetic payload; 0 leaks`);
   } catch (err) {
     fail('Privacy pipeline failed', err);
   }
@@ -121,7 +134,7 @@ async function runRubricVerification() {
   // -------------------------------------------------------------------------
   // 2. TENANT ISOLATION & REGION RESIDENCY (HTTP 403 / 421)
   // -------------------------------------------------------------------------
-  step('2. Multi-Tenant Isolation & Cross-Region Data Residency (HTTP 421)');
+  step('2. [SIMULATED] Multi-Tenant Isolation & Cross-Region Data Residency (HTTP 421)');
   try {
     const tenantA = new TenantStore({ id: 'tenant-a', name: 'Acme', home_region: 'ap-south' }, 'ap-south', tempDir, thresholds);
     const tenantB = new TenantStore({ id: 'tenant-b', name: 'Initech', home_region: 'ap-south' }, 'ap-south', tempDir, thresholds);
@@ -153,7 +166,7 @@ async function runRubricVerification() {
     const isResidencyViolation = globexTenant.home_region !== REGION;
     assert.ok(isResidencyViolation, 'Globex homed in eu-west must violate ap-south residency');
     
-    pass('Tenant isolation cryptographically enforced; foreign regions trigger HTTP 421', 'Zero cross-tenant leakage');
+    pass('[SIMULATED] Tenant isolation logic verified in-process; foreign region flag correctly detected', 'Zero cross-tenant leakage in synthetic stores; HTTP 421 path is enforced by server.js');
   } catch (err) {
     fail('Tenant isolation/residency check failed', err);
   }
@@ -161,7 +174,7 @@ async function runRubricVerification() {
   // -------------------------------------------------------------------------
   // 3. OUT-OF-ORDER EVENTS SORTED BY EVENT TIMESTAMP
   // -------------------------------------------------------------------------
-  step('3. Out-of-Order Telemetry & Event-Time Placement');
+  step('3. [SIMULATED] Out-of-Order Telemetry & Event-Time Placement');
   try {
     const s = new TenantStore({ id: 'tenant-order', name: 'Order Demo', home_region: 'ap-south' }, 'ap-south', tempDir, thresholds);
     const srcId = 'src-time-sync-01';
@@ -203,7 +216,7 @@ async function runRubricVerification() {
     const latestSeries = s.series.get(`${srcId}|cpu_pct`);
     assert.equal(latestSeries.last, 50, 'Late record must not overwrite the latest state or baseline');
 
-    pass('Out-of-order records sorted by event_timestamp_utc without corrupting live state', 'late_records: 1, last: 50%');
+    pass('[SIMULATED] Out-of-order records correctly sorted and flagged; latest state unaffected', 'late_records: 1, last: 50% (synthetic data)');
   } catch (err) {
     fail('Out-of-order handling failed', err);
   }
@@ -211,7 +224,7 @@ async function runRubricVerification() {
   // -------------------------------------------------------------------------
   // 4. DUPLICATE IDEMPOTENCE (0 DUPLICATES ON REPLAY)
   // -------------------------------------------------------------------------
-  step('4. Idempotent Deduplication: Replay Yields Zero Duplicates');
+  step('4. [SIMULATED] Idempotent Deduplication: Replay Yields Zero Duplicates');
   try {
     const s = new TenantStore({ id: 'tenant-dedup', name: 'Dedup Demo', home_region: 'ap-south' }, 'ap-south', tempDir, thresholds);
     const p = {
@@ -242,7 +255,7 @@ async function runRubricVerification() {
     const totalRecords = s.db.prepare('select count(*) as count from records').get().count;
     assert.equal(totalRecords, 1, 'Total records in SQLite must strictly remain 1');
 
-    pass('Idempotent delivery verified: 100% deduplication on replay', 'Sent: 2, Unique Stored: 1, Duplicates: 0');
+    pass('[SIMULATED] Idempotent delivery logic verified: duplicate payload_id correctly rejected', 'Sent: 2, Unique Stored: 1, Duplicates: 0 (synthetic data)');
   } catch (err) {
     fail('Deduplication check failed', err);
   }
@@ -250,7 +263,7 @@ async function runRubricVerification() {
   // -------------------------------------------------------------------------
   // 5. REAL TIMINGS & STALENESS SLA (EVENT -> RENDER < 10s)
   // -------------------------------------------------------------------------
-  step('5. Real-Time Latency & Heartbeat Staleness SLA (< 10s Target)');
+  step('5. [SIMULATED] Timing Code-Path & Heartbeat Staleness SLA (< 10s Target)');
   try {
     const s = new TenantStore({ id: 'tenant-sla', name: 'SLA Demo', home_region: 'ap-south' }, 'ap-south', tempDir, thresholds);
     s.bootMs = 0;
@@ -289,7 +302,7 @@ async function runRubricVerification() {
     s.tick(T0 + 65000);
     assert.equal(s.lastHealth.sources[0].state, 'Poor', 'Silence > 60s must downgrade health state to Poor');
 
-    pass('Sub-second latency SLA met and offline silence triggers automatic Poor state', `p95: ${(p95/1000).toFixed(2)}s <= 10.0s SLA`);
+    pass('[SIMULATED] Timing code-path verified with synthetic render timestamp; staleness states correct', `Synthetic p95: ${(p95/1000).toFixed(2)}s (hard-coded render_ms, NOT a live measurement) — SLA target is <= 10.0s`);
   } catch (err) {
     fail('SLA / timing check failed', err);
   }
@@ -297,7 +310,7 @@ async function runRubricVerification() {
   // -------------------------------------------------------------------------
   // 6. MULTI-SIGNAL CORRELATION & SAFE REMEDIATION
   // -------------------------------------------------------------------------
-  step('6. AIOps Correlation & Human-in-the-Loop Safe Remediation');
+  step('6. [SIMULATED] AIOps Correlation & Human-in-the-Loop Safe Remediation');
   try {
     const s = new TenantStore({ id: 'tenant-aiops', name: 'AIOps Demo', home_region: 'ap-south' }, 'ap-south', tempDir, thresholds);
     const src = 'src-cluster-node-7b';
@@ -362,7 +375,7 @@ async function runRubricVerification() {
     assert.equal(rollbackRes.status, 200);
     assert.equal(rollbackRes.remediation.state, 'rolled_back');
 
-    pass('Multi-signal alerts unified into 1 incident with policy clearance and 1-click rollback', 'Signals merged: 2 -> 1 incident');
+    pass('[SIMULATED] AIOps correlation and remediation logic verified with synthetic anomaly injection', 'Signals merged: 2 -> 1 incident (synthetic data; not from live organizer stream)');
   } catch (err) {
     fail('AIOps correlation / remediation failed', err);
   }
@@ -375,9 +388,11 @@ async function runRubricVerification() {
   } catch {}
 
   console.log(`\n${BOLD}======================================================================${RESET}`);
-  console.log(`${BOLD} Rubric Verification Summary: ${passed} Passed, ${failed} Failed ${RESET}`);
+  console.log(`${BOLD} Simulated Code-Path Results: ${passed} Passed, ${failed} Failed        ${RESET}`);
   if (failed === 0) {
-    console.log(`${GREEN}${BOLD} ALL 6 CICADA 2026 EVALUATION GATES SATISFIED 100% ${RESET}`);
+    console.log(`${GREEN}${BOLD} ALL 6 PIPELINE CODE-PATHS VERIFIED (SIMULATED DATA ONLY)           ${RESET}`);
+    console.log(`${YELLOW}${BOLD} ⚠ NOT equivalent to live organizer-stream SLA evidence.            ${RESET}`);
+    console.log(`${YELLOW}${BOLD} ⚠ Run with a live stack + jury stream to satisfy that criterion.   ${RESET}`);
   } else {
     console.log(`${RED}${BOLD} VERIFICATION SUITE ENCOUNTERED FAILURES ${RESET}`);
     process.exit(1);

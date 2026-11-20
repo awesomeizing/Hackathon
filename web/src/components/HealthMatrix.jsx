@@ -53,18 +53,20 @@ export default function HealthMatrix({
     ? (timing.render.p95 / 1000).toFixed(2)
     : timing?.ingest?.p95
     ? (timing.ingest.p95 / 1000).toFixed(2)
-    : '1.24';
+    : null;
 
   // Helper to extract numeric metrics with safe fallbacks
-  const getMetricVal = (m, key, fallback = 0) => {
-    if (!m) return fallback;
+  const getMetricVal = (m, key) => {
+    if (!m) return null;
     const item = m[key];
     if (typeof item === 'number') return item;
     if (item && typeof item.value === 'number') return item.value;
     if (item && typeof item.last === 'number') return item.last;
     if (item && typeof item.avg === 'number') return item.avg;
-    return fallback;
+    return null;
   };
+  const fmt = (v, decimals, suffix) =>
+    v !== null ? <NumberTicker value={v} decimals={decimals} suffix={suffix} /> : <span className="text-neutral-600">—</span>;
 
   return (
     <div className="space-y-6">
@@ -145,9 +147,11 @@ export default function HealthMatrix({
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold font-mono text-cyan-400">
-              {renderP95}s
+              {renderP95 !== null ? `${renderP95}s` : '—'}
             </span>
-            <span className="text-[11px] font-mono text-neutral-500">SLA ≤ 10s (PASS)</span>
+            <span className="text-[11px] font-mono text-neutral-500">
+              {renderP95 !== null ? 'SLA ≤ 10s (PASS)' : 'not measured yet'}
+            </span>
           </div>
         </SpotlightCard>
       </div>
@@ -163,12 +167,12 @@ export default function HealthMatrix({
             const theme = STATE_COLORS[src.state] || STATE_COLORS.Good;
             const m = src.metrics || {};
 
-            const cpu = getMetricVal(m, 'cpu_pct', getMetricVal(m, 'cpu', 34.2));
-            const latency = getMetricVal(m, 'latency_ms', getMetricVal(m, 'latency', 18.0));
-            const pktLoss = getMetricVal(m, 'packet_loss_pct', getMetricVal(m, 'loss', 0.0));
-            const mem = getMetricVal(m, 'mem_pct', getMetricVal(m, 'memory_pct', 58.4));
-            const disk = getMetricVal(m, 'disk_pct', getMetricVal(m, 'disk', 44.0));
-            const serviceUp = getMetricVal(m, 'service_up', 1);
+            const cpu = getMetricVal(m, 'cpu_pct');
+            const latency = getMetricVal(m, 'latency_ms');
+            const pktLoss = getMetricVal(m, 'packet_loss_pct');
+            const mem = getMetricVal(m, 'mem_pct');
+            const disk = getMetricVal(m, 'disk_pct');
+            const serviceUp = getMetricVal(m, 'service_up');
 
             return (
               <SpotlightCard
@@ -208,8 +212,8 @@ export default function HealthMatrix({
                       <div className="text-[10px] text-neutral-400 uppercase tracking-wider font-semibold">
                         CPU
                       </div>
-                      <div className={`font-semibold ${cpu > 85 ? 'text-red-400' : 'text-neutral-200'}`}>
-                        <NumberTicker value={cpu} decimals={1} suffix="%" />
+                      <div className={`font-semibold ${cpu !== null && cpu > 85 ? 'text-red-400' : 'text-neutral-200'}`}>
+                        {cpu !== null ? <NumberTicker value={cpu} decimals={1} suffix="%" /> : <span className="text-neutral-600">—</span>}
                       </div>
                     </div>
 
@@ -217,8 +221,8 @@ export default function HealthMatrix({
                       <div className="text-[10px] text-neutral-400 uppercase tracking-wider font-semibold">
                         LATENCY
                       </div>
-                      <div className={`font-semibold ${latency > 200 ? 'text-red-400' : 'text-neutral-200'}`}>
-                        <NumberTicker value={latency} decimals={0} suffix="ms" />
+                      <div className={`font-semibold ${latency !== null && latency > 200 ? 'text-red-400' : 'text-neutral-200'}`}>
+                        {latency !== null ? <NumberTicker value={latency} decimals={0} suffix="ms" /> : <span className="text-neutral-600">—</span>}
                       </div>
                     </div>
 
@@ -226,8 +230,8 @@ export default function HealthMatrix({
                       <div className="text-[10px] text-neutral-400 uppercase tracking-wider font-semibold">
                         PKT LOSS
                       </div>
-                      <div className={`font-semibold ${pktLoss > 1.5 ? 'text-red-400' : 'text-neutral-200'}`}>
-                        <NumberTicker value={pktLoss} decimals={2} suffix="%" />
+                      <div className={`font-semibold ${pktLoss !== null && pktLoss > 1.5 ? 'text-red-400' : 'text-neutral-200'}`}>
+                        {pktLoss !== null ? <NumberTicker value={pktLoss} decimals={2} suffix="%" /> : <span className="text-neutral-600">—</span>}
                       </div>
                     </div>
 
@@ -236,7 +240,7 @@ export default function HealthMatrix({
                         MEMORY
                       </div>
                       <div className="text-neutral-200 font-semibold">
-                        <NumberTicker value={mem} decimals={1} suffix="%" />
+                        {mem !== null ? <NumberTicker value={mem} decimals={1} suffix="%" /> : <span className="text-neutral-600">—</span>}
                       </div>
                     </div>
 
@@ -245,7 +249,7 @@ export default function HealthMatrix({
                         DISK
                       </div>
                       <div className="text-neutral-200 font-semibold">
-                        <NumberTicker value={disk} decimals={1} suffix="%" />
+                        {disk !== null ? <NumberTicker value={disk} decimals={1} suffix="%" /> : <span className="text-neutral-600">—</span>}
                       </div>
                     </div>
 
@@ -255,10 +259,10 @@ export default function HealthMatrix({
                       </div>
                       <div
                         className={`font-semibold text-xs ${
-                          serviceUp >= 1 ? 'text-emerald-400' : 'text-red-400'
+                          serviceUp === null ? 'text-neutral-600' : serviceUp >= 1 ? 'text-emerald-400' : 'text-red-400'
                         }`}
                       >
-                        {serviceUp >= 1 ? 'ONLINE' : 'DOWN'}
+                        {serviceUp === null ? '—' : serviceUp >= 1 ? 'ONLINE' : 'DOWN'}
                       </div>
                     </div>
                   </div>

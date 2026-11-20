@@ -27,6 +27,9 @@ export default function EgressProofPanel({ payloads = [], counts = {} }) {
             <span>Cryptographic Egress Audit Panel</span>
           </div>
           <h3 className="text-xl font-bold text-white">Signal Passport & SaaS Receipt Ledger</h3>
+          <p className="text-[11px] text-neutral-500 font-mono mt-1">
+            Select a payload → inspect its local Signal Passport → verify the SaaS receipt digest matches
+          </p>
         </div>
 
         {/* Counter Badges */}
@@ -91,7 +94,7 @@ export default function EgressProofPanel({ payloads = [], counts = {} }) {
                   </div>
 
                   <div className="flex items-center justify-between text-[10px] text-slate-500">
-                    <span>{p.bytes || 3779} Bytes</span>
+                    <span>{p.bytes != null ? `${p.bytes} Bytes` : 'size not measured'}</span>
                     <span>{p.created_at ? new Date(p.created_at).toLocaleTimeString() : 'Recent'}</span>
                   </div>
                 </div>
@@ -127,32 +130,51 @@ export default function EgressProofPanel({ payloads = [], counts = {} }) {
                   </button>
                 </div>
                 <div className="text-emerald-400 font-bold text-xs break-all bg-slate-900/80 p-2 rounded border border-slate-800">
-                  {selectedPayload.passport?.sha256 || '0cc5a837d8a9bbaaa3a6e047fd090001d8dbe1500cb1fc9ae909e4e86228cc68'}
+                  {selectedPayload.passport?.sha256 ?? '— waiting for data —'}
                 </div>
               </div>
 
-              {/* SaaS Receipt Comparison */}
-              <div className="p-3.5 rounded-lg bg-emerald-950/20 border border-emerald-500/30 space-y-2">
-                <div className="flex items-center justify-between text-emerald-400 font-semibold">
-                  <span>TIER 2 SAAS RECEIPT:</span>
-                  <span className="flex items-center gap-1 text-[11px] text-emerald-300">
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                    RECEIPT CONFIRMED (100% MATCH)
-                  </span>
+                <div className="p-3.5 rounded-lg bg-emerald-950/20 border border-emerald-500/30 space-y-2">
+                  {(() => {
+                    const passportDigest = selectedPayload.passport?.sha256;
+                    const receiptDigest = selectedPayload.receipt?.received_digest;
+                    const confirmed = passportDigest && receiptDigest && passportDigest === receiptDigest;
+                    const pending = passportDigest && !receiptDigest;
+                    return (
+                      <>
+                        <div className="flex items-center justify-between text-emerald-400 font-semibold">
+                          <span>TIER 2 SAAS RECEIPT:</span>
+                          {confirmed ? (
+                            <span className="flex items-center gap-1 text-[11px] text-emerald-300">
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                              RECEIPT CONFIRMED (100% MATCH)
+                            </span>
+                          ) : pending ? (
+                            <span className="flex items-center gap-1 text-[11px] text-amber-300">
+                              AWAITING RECEIPT
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-[11px] text-neutral-400">
+                              NO RECEIPT YET
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-slate-300 text-[11px] break-all bg-black/50 p-2 rounded border border-emerald-950/60">
+                          Received Digest:{' '}
+                          <span className={confirmed ? 'text-emerald-300' : 'text-neutral-500'}>
+                            {receiptDigest ?? 'not yet received'}
+                          </span>
+                          <br />
+                          Receipt Status:{' '}
+                          <span className="text-cyan-300">{selectedPayload.receipt?.status ?? 'pending'}</span> &middot; Stored At:{' '}
+                          <span className="text-slate-400">
+                            {selectedPayload.acked_at ?? selectedPayload.created_at ?? '—'}
+                          </span>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
-                <div className="text-slate-300 text-[11px] break-all bg-black/50 p-2 rounded border border-emerald-950/60">
-                  Received Digest:{' '}
-                  <span className="text-emerald-300">
-                    {selectedPayload.receipt?.received_digest || selectedPayload.passport?.sha256}
-                  </span>
-                  <br />
-                  Receipt Status:{' '}
-                  <span className="text-cyan-300">{selectedPayload.receipt?.status || 'stored'}</span> &middot; Stored At:{' '}
-                  <span className="text-slate-400">
-                    {selectedPayload.acked_at || selectedPayload.created_at || new Date().toISOString()}
-                  </span>
-                </div>
-              </div>
 
               {/* Allowed Fields List */}
               <div>

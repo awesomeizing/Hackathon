@@ -10,17 +10,12 @@ import { Shield } from 'lucide-react';
 
 export default function App() {
   const [activeTenant, setActiveTenant] = useState('acme');
-  const [tenantTokens, setTenantTokens] = useState({});
-
-  // Fetch local viewer tokens if available
-  React.useEffect(() => {
-    fetch('/api/viewer-tokens')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((tokens) => {
-        if (tokens) setTenantTokens(tokens);
-      })
-      .catch(() => {});
-  }, []);
+  // Viewer tokens are local credentials and must not be fetched from the server
+  // into the React bundle. The server already auto-authenticates loopback requests
+  // for the acme tenant (see saas/server.js viewerApi). Token switching is handled
+  // by the TumblerPassword gate which prompts the user for the clearance code;
+  // that code is used as the Authorization header value at fetch time.
+  const tenantTokens = {};
 
   const scrollToCommandCenter = () => {
     const el = document.getElementById('command-center');
