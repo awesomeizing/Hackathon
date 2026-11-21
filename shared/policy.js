@@ -9,7 +9,7 @@ const HB_SCHEMA = 'signal-passport-heartbeat/1';
 const METRICS = ['cpu_pct', 'mem_pct', 'disk_pct', 'bw_mbps', 'latency_ms', 'packet_loss_pct', 'service_up'];
 const SEVERITIES = ['info', 'warning', 'error', 'critical'];
 const REGIONS = ['ap-south', 'eu-west', 'us-east'];
-const STREAMS = ['organizer', 'simulated'];
+const STREAMS = ['organizer', 'simulated', 'team-simulated'];
 const MAX_RECORDS = 500;
 const MAX_BODY = 256 * 1024;
 
