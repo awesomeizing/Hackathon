@@ -8,6 +8,7 @@
   },
   "scripts": {
     "start": "node start.js",
+    "build": "cd web && npm install && npm run build",
     "setup": "node scripts/setup.js",
     "sim": "node scripts/sim-stream.js",
     "saas": "node saas/server.js",

@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "buildCommand": "cd web && npm install && npm run build",
+  "outputDirectory": "saas/dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api"
+    },
+    {
+      "source": "/collector-api/(.*)",
+      "destination": "/api"
+    },
+    {
+      "source": "/((?!assets/|api/|collector-api/).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
